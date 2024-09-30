@@ -1,20 +1,27 @@
 from collections import deque
 import threading
 import canPkts
+import ethernetPkts
 import cudfPkts
 
 buffer = None
 stop_logging = False
+bus_type = "eth"     # change to read gui selected bus
 
 def logging(stop):
     
     while True:
         if stop():
-            canPkts.shutdown_can()
+            if bus_type=="can":
+                canPkts.shutdown_can()
             #print (buffer)
             break
 
-        msg = canPkts.recv_msg()
+        if bus_type == "can":
+            msg = canPkts.recv_msg()
+        else:
+            msg = ethernetPkts.recv_msg()
+      
         cudfPkts.append(msg)
 
 def startLogger():
@@ -23,8 +30,10 @@ def startLogger():
     global thread
     
     # NEED TO ADD INPUT FIELD TO GET INTERFACE FROM USER
-    canPkts.setup_can("vcan0")
-    cudfPkts.start_dataframe()
+    if bus_type=="can":    
+        canPkts.setup_can("vcan0")
+    dataframe_fields = ethernetPkts.get_fields(bus_type)
+    cudfPkts.start_dataframe(dataframe_fields)
     stop_logging = False
     thread = threading.Thread(target=logging, args=(lambda : stop_logging, ))
     thread.start()
