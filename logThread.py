@@ -25,14 +25,15 @@ def logging(stop):
         cudfPkts.append(msg)
 
 def startLogger():
-
     global stop_logging
     global thread
     
     # NEED TO ADD INPUT FIELD TO GET INTERFACE FROM USER
     if bus_type=="can":    
         canPkts.setup_can("vcan0")
-    dataframe_fields = ethernetPkts.get_fields(bus_type)
+        dataframe_fields = canPkts.get_fields(bus_type)
+    elif bus_type == "eth":
+        dataframe_fields = ethernetPkts.get_fields(bus_type)
     cudfPkts.start_dataframe(dataframe_fields)
     stop_logging = False
     thread = threading.Thread(target=logging, args=(lambda : stop_logging, ))

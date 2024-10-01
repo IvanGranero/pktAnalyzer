@@ -1,18 +1,30 @@
-import can
+import scapy.all as scapy
+
+can_fields = None
+sock = None
+
+def get_fields(bus_type):    
+    global can_fields
+    if bus_type == "can":
+        can_fields = [field.name for field in CAN().fields_desc]
+        dataframe_fields = can_fields + ['datahex','dataascii']
+        return dataframe_fields
 
 def setup_can(interface):
-    global bus
+    global sock
     try:
         print("Bring up %s...." % (interface))
+        scapy.load_contrib('cansocket')
+        scapy.load_layer("can")        
         #os.system("sudo /sbin/ip link set can0 up type can bitrate 500000")
         #time.sleep(0.1)
-        bus = can.interface.Bus(interface='socketcan', channel=interface, bitrate=500000)
-        #bus = can.interface.Bus(interface='socketcan', channel='vcan0', bitrate=500000)
-        #bus = can.interface.Bus(interface='socketcan', channel='can0', bitrate=500000)
-        # bus = can.Bus(interface='socketcan', channel='vcan0', bitrate=250000)
-        # bus = can.Bus(interface='pcan', channel='PCAN_USBBUS1', bitrate=250000)
-        # bus = can.Bus(interface='ixxat', channel=0, bitrate=250000)
-        # bus = can.Bus(interface='vector', app_name='CANalyzer', channel=0, bitrate=250000)
+        sock = CANSocket(channel=interface, bitrate=500000)
+        #Creating a native CANSocket only listen for messages with Id == 0x200:
+        #socket = CANSocket(channel="vcan0", can_filters=[{'can_id': 0x200, 'can_mask': 0x7FF}])
+        #Creating a native CANSocket only listen for messages with Id >= 0x200 and Id <= 0x2ff:
+        #socket = CANSocket(channel="vcan0", can_filters=[{'can_id': 0x200, 'can_mask': 0x700}])
+        #Creating a native CANSocket only listen for messages with Id != 0x200:
+        #CANSocket(channel="vcan0", can_filters=[{'can_id': 0x200 | CAN_INV_FILTER, 'can_mask': 0x7FF}])
 
     except OSError:
         print("Cannot find %s interface." % (interface))
@@ -21,7 +33,7 @@ def setup_can(interface):
     print('Ready')
 
 def shutdown_can():
-    bus.shutdown()
+    sock.close()
 
 
 def send_msg(arb_id, data, is_extended=False):
@@ -32,24 +44,45 @@ def send_msg(arb_id, data, is_extended=False):
         print("Message NOT sent")
 
 def recv_msg():
+    # time needs to be added by keeping track of a time global variable
+    message = []
     try:
-    #while True:
-        message = bus.recv()    # Wait until a message is received.
-        
-        '''
-        c = '{0:f} {1:x} {2:x} '.format(message.timestamp, message.arbitration_id, message.dlc)
-        s=''
-        for i in range(message.dlc ):
-            s +=  '{:02x} '.format(message.data[i])
-        #print(' {}'.format(c+s))
-        return message, s
-        '''
+        pkt = sock.sniff(count=1)[0] # Wait until a message is received.
 
-        return message
-    
+        for field in can_fields:            
+            try:
+                if field == 'flags':        
+                    message.append(pkt.fields[field].flagrepr())
+                else:
+                    message.append(pkt.fields[field])
+            except: 
+                message.append(None)
+        
+        try:
+            datahex = pkt.fields['data'].hex()
+            message.append(datahex)
+            dataascii = ""
+            for i in range(0, len(datahex), 2):
+                if 32 <= int(datahex[i : i + 2], 16) <= 126:
+                    dataascii += chr(int(datahex[i : i + 2], 16))                    
+                else:
+                    dataascii += "."
+            message.append(dataascii)
+
+        except:
+            message.append(None)
+
     except KeyboardInterrupt:
         #Catch keyboard interrupt
         #os.system("sudo /sbin/ip link set can0 down")
         print('\n\rRecv Msg Keyboard interrupt')
-        bus.shutdown()
         exit(0)
+    except:
+        pass
+
+    return message 
+
+# setup_can("vcan0")
+# print (get_fields("can"))
+# msg = recv_msg()
+# print (msg)

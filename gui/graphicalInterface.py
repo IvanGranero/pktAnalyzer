@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
                 self.tableview.clearContents()
                 self.tableview.setRowCount(len(data.index))
                 self.tableview.setColumnCount(len(data.columns))
+                self.tableview.setHorizontalHeaderLabels(data.columns)                
                 self.tableview.verticalHeader().setVisible(False)
                 self.tableview.setSortingEnabled(True)        
                 num_rows = len(data.index)
@@ -60,16 +61,16 @@ class MainWindow(QMainWindow):
             self.btn_start_logger.setText("Start LoggerThread")
             self.start_stop = 0
         else:
-            self.w = StartLoggerWindow()
-            self.w.show()
-            if ( self.w.exec_() ): #returns 1 if clicked OK
-                print (self.w.inline_stop.text())
+            # self.w = StartLoggerWindow()
+            # self.w.show()
+            # if ( self.w.exec_() ): #returns 1 if clicked OK
+            #     print (self.w.inline_stop.text())
 
-                logThread.startLogger()
-                self.btn_start_logger.setText("Stop LoggerThread")       
-                self.start_stop = 1
+            logThread.startLogger()
+            self.btn_start_logger.setText("Stop LoggerThread")       
+            self.start_stop = 1
 
-            
+#THIS MIGHT BE NEEDED FOR PLOTS TO SHOW UP ON A SEPERATE WINDOW
 class StartLoggerWindow(QDialog):
     def __init__(self):
         super().__init__()

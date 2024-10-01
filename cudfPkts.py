@@ -24,13 +24,13 @@ def save_packets(file_name):
     #save all buffer into file         
     #df_dump.to_csv(file_name) 
     # PARQUET GIVING ERROR for unknown values, NEED TOF IND A WAY TO SAVE IGNORING ERRORS 
-    #df_dump.to_parquet(file_name+'.parquet.gzip', compression='gzip')
+    df_dump.to_parquet(file_name+'.parquet.gzip', compression='gzip')
     
     print("Saved as bufferdump.")
 
 def append(pkt):
     global df_dump
-    print (pkt)
+    print (pkt)     # only for debugging REMOVE AFTER
     if pkt[0] != None:
         df_dump.loc[len(df_dump)] = pkt
 

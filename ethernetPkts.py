@@ -14,7 +14,7 @@ def get_interfaces():
     for interface in list:
         print (interface)
         try:
-            pkt = scapy.sniff(iface=interface, timeout=5, filter="tcp")
+            pkt = scapy.sniff(iface=interface, count=1)
             print ( pkt )
         except:
             print ("Error opening interface.")
@@ -40,7 +40,9 @@ def recv_msg():
 
         for field in ip_fields:            
             try:
-                if field == 'options':
+                if field == 'flags':        
+                    message.append(pkt.fields[field].flagrepr())             
+                elif field == 'options':
                     message.append(len(ip_pkt.fields[field]))
                 elif field == 'proto':
                     message.append( table[ip_pkt.fields[field]] )
@@ -88,6 +90,7 @@ def recv_msg():
     return message        
 
 
+#get_interfaces()
 #print ( get_fields("eth") )
 #recv_msg()
 # scapy.load_layer("can")
