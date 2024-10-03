@@ -27,7 +27,7 @@ def get_fields(bus_type):
         ip_fields = [field.name for field in scapy.IP().fields_desc]
         tcp_fields = [field.name for field in scapy.TCP().fields_desc]
         udp_fields = [field.name for field in scapy.UDP().fields_desc]
-        dataframe_fields = ip_fields + ['time'] + tcp_fields + udp_fields + ['payload','payload_raw']
+        dataframe_fields = ip_fields + ['time'] + tcp_fields + udp_fields + ['data','datahex','dataascii']
         return dataframe_fields
 
 def recv_msg():
@@ -59,7 +59,9 @@ def recv_msg():
 
         for field in tcp_fields:
             try:
-                if field == 'options':
+                if field == 'flags':        
+                    message.append(pkt[layer_type].fields[field].flagrepr())
+                elif field == 'options':
                     message.append(len(pkt[layer_type].fields[field]))
                 else:
                     message.append(pkt[layer_type].fields[field])
@@ -68,16 +70,29 @@ def recv_msg():
 
         for field in udp_fields:
             try:
-                if field == 'options':
+                if field == 'flags':        
+                    message.append(pkt[layer_type].fields[field].flagrepr())
+                elif field == 'options':
                     message.append(len(pkt[layer_type].fields[field]))
                 else:
                     message.append(pkt[layer_type].fields[field])
             except:
                 message.append(None)
+        
+        message.append(pkt[layer_type].payload.original)
+        try:
+            datahex = pkt[layer_type].payload.original.hex()
+            message.append(datahex)
+            dataascii = ""
+            for i in range(0, len(datahex), 2):
+                if 32 <= int(datahex[i : i + 2], 16) <= 126:
+                    dataascii += chr(int(datahex[i : i + 2], 16))                    
+                else:
+                    dataascii += "."
+            message.append(dataascii)
 
-        message.append(len(pkt[layer_type].payload))
-        message.append(pkt[layer_type].payload.original)        
-
+        except:
+            message.append(None)
     
     except KeyboardInterrupt:
         #Catch keyboard interrupt

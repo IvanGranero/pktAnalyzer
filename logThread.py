@@ -6,7 +6,7 @@ import cudfPkts
 
 buffer = None
 stop_logging = False
-bus_type = "eth"     # change to read gui selected bus
+bus_type = "eth"     # default value
 
 def logging(stop):
     
@@ -24,10 +24,11 @@ def logging(stop):
       
         cudfPkts.append(msg)
 
-def startLogger():
+def startLogger(network_item):
     global stop_logging
     global thread
-    
+    global bus_type
+    bus_type = network_item
     # NEED TO ADD INPUT FIELD TO GET INTERFACE FROM USER
     if bus_type=="can":    
         canPkts.setup_can("vcan0")
@@ -48,5 +49,11 @@ def stopLogger():
 
     cudfPkts.save_packets("bufferdump")
 
+
+def evalFilter(filter_argument):
+    return cudfPkts.eval_filter(filter_argument)
+
+
 def runFilter(filter_argument):
-    return cudfPkts.run_filter(filter_argument)
+    return cudfPkts.query_filter(filter_argument)
+

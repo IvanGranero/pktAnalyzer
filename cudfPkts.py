@@ -1,10 +1,9 @@
 import pandas as pd
 
-df_dump = pd.DataFrame()
+alldata = pd.DataFrame()
 
 def start_dataframe(dataframe_fields):
-    global df_dump
-    
+    global alldata
     #inspecting for repeated column names
     new_dataframe_fields = [] 
     counts = {}
@@ -15,27 +14,35 @@ def start_dataframe(dataframe_fields):
             new_dataframe_fields.append(el)
         else:
             new_dataframe_fields.append(el + str(temp_count))
+    alldata = pd.DataFrame(columns=new_dataframe_fields)
 
-    df_dump = pd.DataFrame(columns=new_dataframe_fields)
-
-def save_packets(file_name):        
-    global df_dump
-    print ("Saving buffer to a file")
+def save_packets(file_name):     
+    global alldata       
+    print ("Saving log to a file")
     #save all buffer into file         
-    #df_dump.to_csv(file_name) 
-    # PARQUET GIVING ERROR for unknown values, NEED TOF IND A WAY TO SAVE IGNORING ERRORS 
-    df_dump.to_parquet(file_name+'.parquet.gzip', compression='gzip')
-    
+    #alldata.to_csv(file_name) 
+    # PARQUET GIVING ERROR for unknown values, NEED TOF IND A WAY TO SAVE IGNORING ERRORS     
+    alldata = alldata.convert_dtypes()
+    try:        
+        alldata.to_parquet(file_name+'.parquet.gzip', compression='gzip')
+    except Exception as e:
+        try:
+            print(e)
+            alldata.to_csv(file_name+'.gzip', compression='gzip')
+        except Exception as e:
+            print(e)
+            alldata.to_csv(file_name+'.csv', sep='\t')
     print("Saved as bufferdump.")
 
 def append(pkt):
-    global df_dump
+    global alldata
     print (pkt)     # only for debugging REMOVE AFTER
     if pkt[0] != None:
-        df_dump.loc[len(df_dump)] = pkt
-
-def run_filter(filter_argument):
-    global df_dump
-    return df_dump.query(filter_argument)
+        alldata.loc[len(alldata)] = pkt
 
 
+def query_filter(filter_argument):
+    return alldata.query(filter_argument)
+
+def eval_filter(filter_argument):
+    return pd.eval(filter_argument)
