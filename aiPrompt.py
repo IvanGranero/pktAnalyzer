@@ -1,10 +1,6 @@
 #import os
 from openai import OpenAI
-import requests # Libreria para peticiones HTML
-import json # Libreria para manejar archivos JSON
-from pathlib import Path # Libreria para trabajar con rutas de archivos y directorios
 import speech_recognition as sr
-import numpy as np
 #from dotenv import load_dotenv
 
 #load_dotenv()
