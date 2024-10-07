@@ -55,8 +55,6 @@ def recv_msg():
         message.append(pkt.time)
 
         layer_type = type(ip_pkt.payload)
-        print (layer_type)
-
         for field in tcp_fields:
             try:
                 if field == 'flags':        
@@ -103,11 +101,3 @@ def recv_msg():
         pass
 
     return message        
-
-
-#get_interfaces()
-#print ( get_fields("eth") )
-#recv_msg()
-# scapy.load_layer("can")
-# can_fields = [field.name for field in CAN().fields_desc] 
-# print (can_fields)

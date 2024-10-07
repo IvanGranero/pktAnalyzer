@@ -16,7 +16,20 @@ def start_dataframe(dataframe_fields):
             new_dataframe_fields.append(el + str(temp_count))
     alldata = pd.DataFrame(columns=new_dataframe_fields)
 
-def save_packets(file_name):     
+def read_packets(filepath):
+    global alldata
+    try:        
+        alldata = pd.read_parquet(filepath, compression='gzip')
+    except Exception as e:
+        try:
+            print(e)
+            alldata = pd.read_csv(filepath, compression="gzip")
+        except Exception as e:
+            print(e)
+            alldata = pd.read_csv(filepath, sep='\t')            
+    print("read all data")
+
+def save_packets(file_name):
     global alldata       
     print ("Saving log to a file")
     #save all buffer into file         
@@ -36,10 +49,19 @@ def save_packets(file_name):
 
 def append(pkt):
     global alldata
-    print (pkt)     # only for debugging REMOVE AFTER
-    if pkt[0] != None:
+    print (pkt)                 # DON'T REMOVE UNTIL ABLE TO LIVE UPDATE THE TABLE
+    try:
         alldata.loc[len(alldata)] = pkt
+    except Exception as e:
+        print (e)
 
+def df_toJSON():
+    try:
+        datos = alldata.head(20)
+        datos = datos.to_json(default_handler=str, orient="records")
+    except Exception as e:
+        print (e)
+    return datos
 
 def query_filter(filter_argument):
     return alldata.query(filter_argument)

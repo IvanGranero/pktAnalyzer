@@ -11,7 +11,6 @@ def handler_interrupt(signal, frame):
 
 
 def main():
-
     # add try catch to all 
     signal.signal(signal.SIGINT, handler_interrupt)
 

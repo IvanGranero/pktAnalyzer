@@ -15,7 +15,7 @@ def setup_can(interface):
     try:
         print("Bring up %s...." % (interface))
         scapy.load_contrib('cansocket')
-        scapy.load_layer("can")        
+        scapy.load_layer("can")
         #os.system("sudo /sbin/ip link set can0 up type can bitrate 500000")
         #time.sleep(0.1)
         sock = CANSocket(channel=interface, bitrate=500000)
@@ -32,57 +32,70 @@ def setup_can(interface):
 
     print('Ready')
 
+
 def shutdown_can():
+    global sock
     sock.close()
 
 
-def send_msg(arb_id, data, is_extended=False):
+def decode_packet(pkt):
+    message = []       
+    for field in can_fields:            
+        try:
+            if field == 'flags':        
+                message.append(pkt.fields[field].flagrepr())
+            else:
+                message.append(pkt.fields[field])
+        except: 
+            message.append(None)
+
     try:
-        msg = can.Message(arbitration_id=arb_id, data=data, is_extended_id= is_extended)
-        bus.send(msg)
-    except can.CanError:
-        print("Message NOT sent")
+        datahex = pkt.fields['data'].hex()
+        message.append(datahex)
+        dataascii = ""
+        for i in range(0, len(datahex), 2):
+            if 32 <= int(datahex[i : i + 2], 16) <= 126:
+                dataascii += chr(int(datahex[i : i + 2], 16))                    
+            else:
+                dataascii += "."
+        message.append(dataascii)
+
+    except:
+        message.append(None)
+    return message
+
 
 def recv_msg():
+    global sock
     # time needs to be added by keeping track of a time global variable
-    message = []
+    message = []    
     try:
-        pkt = sock.sniff(count=1)[0] # Wait until a message is received.
-
-        for field in can_fields:            
-            try:
-                if field == 'flags':        
-                    message.append(pkt.fields[field].flagrepr())
-                else:
-                    message.append(pkt.fields[field])
-            except: 
-                message.append(None)
-        
-        try:
-            datahex = pkt.fields['data'].hex()
-            message.append(datahex)
-            dataascii = ""
-            for i in range(0, len(datahex), 2):
-                if 32 <= int(datahex[i : i + 2], 16) <= 126:
-                    dataascii += chr(int(datahex[i : i + 2], 16))                    
-                else:
-                    dataascii += "."
-            message.append(dataascii)
-
-        except:
-            message.append(None)
+        #pkt = sock.sniff(count=1)[0] # Wait until a message is received.
+        pkt = scapy.sniff(count=1, opened_socket=sock, timeout=1)[0]
+        message = decode_packet(pkt)        
 
     except KeyboardInterrupt:
         #Catch keyboard interrupt
         #os.system("sudo /sbin/ip link set can0 down")
         print('\n\rRecv Msg Keyboard interrupt')
         exit(0)
-    except:
+    except Exception as e:
+        ## possible add EOFError for end of file
+        print (e)
         pass
 
     return message 
 
-# setup_can("vcan0")
-# print (get_fields("can"))
-# msg = recv_msg()
-# print (msg)
+def setup_canreader(filepath):
+    global sock
+    #scapy.load_contrib('cansocket')
+    scapy.load_layer("can")
+    sock = CandumpReader(filepath)
+
+
+# setup_canreader("/home/kali/Documents/DEFCON/VicOne/mache/wellsee_mache.log")
+# setup_canreader("/home/kali/Documents/DEFCON/VicOne/mache/candump.txt")
+# get_fields("can")
+# for i in range(20):
+#     msg = recv_msg()
+#     print (msg)

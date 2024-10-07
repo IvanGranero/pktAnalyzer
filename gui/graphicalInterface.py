@@ -1,6 +1,6 @@
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QTableWidgetItem, QListWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QTableWidgetItem, QListWidgetItem, QFileDialog
 #from PyQt5 import QtWidgets
 from PyQt5.uic import loadUi
 import logThread
@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         self.btn_refresh.clicked.connect(self.show_data)
         self.filter_list.itemPressed.connect(self.update_filters)
         self.filter_view.itemPressed.connect(self.select_filter)
+        self.actionOpen.triggered.connect(self.open_file)     
         self.start_stop = 0
 
     def set_status(self, status, warning_or_success='none'):
@@ -29,6 +30,12 @@ class MainWindow(QMainWindow):
         elif (warning_or_success == 'success'):
             self.display_status.setStyleSheet(
                 "QLabel { color : lightgreen; background-color: transparent; }")        
+
+    def open_file(self):
+        filepath, dummy = QFileDialog.getOpenFileName(self, 'Open File')
+        if len(filepath) > 0:
+            logThread.readPackets(filepath)
+            self.show_data()
 
     def show_data(self):
         self.inline_search.setText("index==index")
@@ -53,6 +60,12 @@ class MainWindow(QMainWindow):
         if len(filter_argument) > 0:
             try:
                 self.set_status('Busy... Please wait!')
+
+                if self.ai_checkBox.isChecked():
+                    response = logThread.askopenAI(filter_argument)
+                    self.set_status(response)
+                    filter_argument = response
+                
                 data = logThread.runFilter(filter_argument)
                 self.tableview.clearContents()
                 self.tableview.setRowCount(len(data.index))
@@ -74,9 +87,9 @@ class MainWindow(QMainWindow):
                 self.set_status('Ready.')
             except Exception as e:
                 print (e)
-                self.set_status('There was a problem with your FILTER argument','warning')
+                self.set_status('There was a problem with the calculation','warning')
         else:
-            self.set_status("type a filter argument e.g. arbitration_id == 310")
+            self.set_status("Input a query e.g. identifier == 310 or check the AI box and use natural language.")
     
     def start_stop_logger(self):
         if (self.start_stop):
@@ -85,27 +98,12 @@ class MainWindow(QMainWindow):
             self.btn_start_logger.setText("Start LoggerThread")
             self.start_stop = 0            
         else:
-            # self.w = StartLoggerWindow()
-            # self.w.show()
-            # if ( self.w.exec_() ): #returns 1 if clicked OK
-            #     print (self.w.inline_stop.text())
-
+            self.btn_start_logger.setText("Stop LoggerThread")
             logThread.startLogger(self.network_list.currentItem().text())
-            self.btn_start_logger.setText("Stop LoggerThread")       
             self.start_stop = 1
 
-#THIS MIGHT BE NEEDED FOR PLOTS TO SHOW UP ON A SEPERATE WINDOW
-class StartLoggerWindow(QDialog):
-    def __init__(self):
-        super().__init__()
-        loadUi("gui/startLogger.ui", self)
-
-
 def openMainWindow(argv):
-
     app = QApplication(argv)
-
     window = MainWindow()
     window.show()
-
     app.exec()
