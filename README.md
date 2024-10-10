@@ -25,24 +25,26 @@ Clone the repository:
 ```bash
 git clone https://github.com/IvanGranero/pktLogger.git
 cd pktLogger
-
+```
 Install the required libraries:
 ```bash
 pip install -r requirements.txt
+```
 
-Usage
-```bash
+### Usage
 Run the main logging script:
+```bash
 python pktLogger.py
-
+```
 Additional scripts can be run individually based on your specific needs:
 ```bash
 python ethernetPkts.py
 python converterTool.py
 python cudfPkts.py
+```
 
-Contributing
+### Contributing
 Feel free to submit issues and pull requests. For major changes, please open an issue first to discuss what you would like to change.
 
-License
+### License
 This project is licensed under the MIT License - see the LICENSE file for details.
