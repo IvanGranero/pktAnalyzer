@@ -3,11 +3,10 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 alldata = pd.DataFrame()
 
-
 class DataFrameLoader(QThread):
     data_loaded = pyqtSignal(pd.DataFrame)
 
-    def __init__(self, file_path, chunk_size=1000, parent=None):
+    def __init__(self, file_path, chunk_size=100, parent=None):
         super().__init__(parent)
         self.file_path = file_path
         self.chunk_size = chunk_size
@@ -15,6 +14,8 @@ class DataFrameLoader(QThread):
     def run(self):
         for chunk in pd.read_csv(self.file_path, chunksize=self.chunk_size):
             self.data_loaded.emit(chunk)
+
+    # need to add the stop option when loading a file, use same approach as PacketLoader to stop
 
 
 def start_dataframe(dataframe_fields):

@@ -127,6 +127,13 @@
    </property>
   </action>
  </widget>
+<customwidgets> 
+    <customwidget>
+    <class>DataFrameWidget</class>
+    <extends>QTableWidget</extends>
+    <header>ui.DataFrameWidget</header>
+  </customwidget>
+</customwidgets>  
  <resources/>
  <connections/>
 </ui>

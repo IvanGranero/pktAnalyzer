@@ -1,40 +1,13 @@
 import signal, sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QTableWidget, QTableWidgetItem, QListWidgetItem, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
+from ui import DataFrameWidget
 from PyQt5.uic import loadUi
 import threading
-import sniffers.canPkts
-import sniffers.ethernetPkts
+import sniffers.packetLoader
 import utils.cudfPkts
 import utils.aiPrompt
 import pandas as pd
-
-
-# Subclass DataFrameWidget to display data
-class DataFrameWidget(QTableWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def clear_table(self):
-        self.clearContents()
-
-    def append_data(self, new_data):
-        print (new_data)
-        if self.rowCount() == 0:
-            print ("NEW")
-            self.setRowCount(new_data.shape[0])
-            self.setColumnCount(new_data.shape[1])
-            self.setHorizontalHeaderLabels(new_data.columns)
-            self.verticalHeader().setVisible(False)
-            self.setSortingEnabled(True)
-
-        current_row_count = self.rowCount()
-        self.setRowCount(current_row_count + new_data.shape[0])
-        
-        for row in range(new_data.shape[0]):
-            for col in range(new_data.shape[1]):
-                self.setItem(current_row_count + row, col, QTableWidgetItem(str(new_data.iat[row, col])))
-
 
 # Subclass MainWindow to customize your application's main window
 class MainWindow(QMainWindow):
@@ -65,7 +38,7 @@ class MainWindow(QMainWindow):
     def open_file(self):
         filepath, dummy = QFileDialog.getOpenFileName(self, 'Open File')
         if len(filepath) > 0:
-            self.loader = cudfPkts.DataFrameLoader(filepath)
+            self.loader = utils.cudfPkts.DataFrameLoader(filepath, chunk_size=100)
             self.loader.data_loaded.connect(self.tableview.append_data)
             self.loader.start()
 
@@ -121,16 +94,16 @@ class MainWindow(QMainWindow):
     def start_stop_logger(self):
         if (self.start_stop):
             self.start_stop = 0
-            self.stop_event.set()            
+            self.loader.stop() 
+            self.loader = None
             self.btn_start_logger.setText("Start Logging")
+
         else:
             self.btn_start_logger.setText("Stop Logging")
             self.start_stop = 1
-            self.stop_event = threading.Event()
-            thread = ethernetPkts.NetworkThread(self.stop_event)
-            thread.start()
-            thread.join()
-            self.tableview.append_data(pd.DataFrame(thread.result))
+            self.loader = sniffers.packetLoader.PacketLoader(chunk_size=1)
+            self.loader.packets_loaded.connect(self.tableview.append_data)
+            self.loader.start()
 
 
 def openMainWindow(argv):
