@@ -1,6 +1,21 @@
 import pandas as pd
+from PyQt5.QtCore import QThread, pyqtSignal
 
 alldata = pd.DataFrame()
+
+
+class DataFrameLoader(QThread):
+    data_loaded = pyqtSignal(pd.DataFrame)
+
+    def __init__(self, file_path, chunk_size=1000, parent=None):
+        super().__init__(parent)
+        self.file_path = file_path
+        self.chunk_size = chunk_size
+
+    def run(self):
+        for chunk in pd.read_csv(self.file_path, chunksize=self.chunk_size):
+            self.data_loaded.emit(chunk)
+
 
 def start_dataframe(dataframe_fields):
     global alldata
@@ -16,18 +31,6 @@ def start_dataframe(dataframe_fields):
             new_dataframe_fields.append(el + str(temp_count))
     alldata = pd.DataFrame(columns=new_dataframe_fields)
 
-def read_packets(filepath):
-    global alldata
-    try:        
-        alldata = pd.read_parquet(filepath, compression='gzip')
-    except Exception as e:
-        try:
-            print(e)
-            alldata = pd.read_csv(filepath, compression="gzip")
-        except Exception as e:
-            print(e)
-            alldata = pd.read_csv(filepath, sep='\t')            
-    print("read all data")
 
 def save_packets(file_name):
     global alldata       
@@ -57,7 +60,7 @@ def append(pkt):
 
 def df_toJSON():
     try:
-        datos = alldata.head(20)
+        datos = alldata.head(10)
         datos = datos.to_json(default_handler=str, orient="records")
     except Exception as e:
         print (e)

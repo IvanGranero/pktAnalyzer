@@ -1,4 +1,5 @@
 import scapy.all as scapy
+import threading
 
 ip_fields, tcp_fields, udp_fields = None, None, None         # global variable for fields
 prefix = "IPPROTO_"
@@ -27,8 +28,22 @@ def get_fields(bus_type):
         ip_fields = [field.name for field in scapy.IP().fields_desc]
         tcp_fields = [field.name for field in scapy.TCP().fields_desc]
         udp_fields = [field.name for field in scapy.UDP().fields_desc]
-        dataframe_fields = ip_fields + ['time'] + tcp_fields + udp_fields + ['data','datahex','dataascii']
+        dataframe_fields = ip_fields + ['time'] + tcp_fields + udp_fields + ['datahex','dataascii']
         return dataframe_fields
+
+class NetworkThread(threading.Thread):
+    def __init__(self, stop_event):
+        threading.Thread.__init__(self)
+        self.stop_event = stop_event
+        self.result = None
+
+    def run(self):
+        try:
+            self.result = recv_msg()
+            print (self.result)
+        finally:
+            self.stop_event.set()
+
 
 def recv_msg():
     # time needs to be added by keeping track of a time global variable
@@ -77,7 +92,6 @@ def recv_msg():
             except:
                 message.append(None)
         
-        message.append(pkt[layer_type].payload.original)
         try:
             datahex = pkt[layer_type].payload.original.hex()
             message.append(datahex)

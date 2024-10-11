@@ -2,6 +2,25 @@ import scapy.all as scapy
 import pandas as pd
 import sys
 
+
+
+
+
+# list of name, degree, score
+nme = ["aparna", "pankaj", "sudhir", "Geeku"]
+deg = ["MBA", "BCA", "M.Tech", "MBA"]
+scr = [90, 40, 80, 98]
+
+# dictionary of lists
+dict = {'name': nme, 'degree': deg, 'score': scr}
+    
+df = pd.DataFrame(dict)
+df.to_csv('file1.csv')
+
+exit()
+
+
+
 alldata = pd.DataFrame()
 
 def decode_packet(pkt):
