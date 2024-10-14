@@ -1,9 +1,6 @@
 # pktLogger
 
-The pktLogger repository by IvanGranero is a tool for logging and analyzing network packets. It uses the `scapy` library to capture and inspect packets on a network interface. The repository includes several Python scripts, each handling different aspects of packet logging and analysis:
-# pktLogger
-
-pktLogger is a tool for logging and analyzing CAN bus data efficiently. This project supports various file formats and provides real-time analysis capabilities.
+The pktLogger repository by IvanGranero is a tool for logging and analyzing CAN bus and Ethernet data efficiently. This project supports various file formats and provides real-time analysis capabilities.
 
 ## Table of Contents
 - [Features](#features)
