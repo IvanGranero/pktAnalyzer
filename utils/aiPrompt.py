@@ -1,13 +1,12 @@
-#import os
+import os
 from openai import OpenAI
 #import speech_recognition as sr
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-#load_dotenv()
+load_dotenv()
 
 client = OpenAI(
-  #api_key=os.getenv("OPENAI_API_KEY", default = ""),
-    api_key = "ADD YOUR OPENAI API KEY"     #NEED TO ADD SETTINGS WINDOWS FOR USER TO ADD API KEY
+  api_key=os.getenv("OPENAI_API_KEY", default = ""),
 )
 
 #Open AI settings 

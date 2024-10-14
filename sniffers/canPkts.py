@@ -1,7 +1,27 @@
 import scapy.all as scapy
+import cantools
+import can
+
 
 can_fields = None
 sock = None
+
+
+# Load your DBC file
+dbc_file_path = 'path/to/your/file.dbc'
+db = cantools.database.load_file(dbc_file_path)
+
+# Define your CAN log file path
+log_file_path = 'path/to/your/can_logfile.log'
+
+def decode_can_log_file(file_path, db):
+    with can.BLFReader(file_path) as log_reader:
+        for msg in log_reader:
+            decoded_msg = db.decode_message(msg.arbitration_id, msg.data)
+            print(f"Channel: {msg.channel}, Decoded Message: {decoded_msg}")
+
+if __name__ == "__main__":
+    decode_can_log_file(log_file_path, db)
 
 def get_fields(bus_type):    
     global can_fields
@@ -94,8 +114,8 @@ def setup_canreader(filepath):
 
 
 # setup_canreader("/home/kali/Documents/DEFCON/VicOne/mache/wellsee_mache.log")
-# setup_canreader("/home/kali/Documents/DEFCON/VicOne/mache/candump.txt")
-# get_fields("can")
+setup_canreader("/home/kali/Documents/DEFCON/VicOne/mache/candump.txt")
+print (get_fields("can"))
 # for i in range(20):
 #     msg = recv_msg()
 #     print (msg)

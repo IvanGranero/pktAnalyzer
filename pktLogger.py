@@ -1,11 +1,11 @@
 import signal, sys
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
-from ui import DataFrameWidget
+#from ui import DataFrameWidget
 from PyQt5.uic import loadUi
-import threading
-import sniffers.packetLoader
-import utils.cudfPkts
+from sniffers.sniffer import PacketLoader
+from utils.dataframeProvider import DataFrameProvider
+from utils.fileLoader import FileLoader
 import utils.aiPrompt
 import pandas as pd
 
@@ -23,8 +23,9 @@ class MainWindow(QMainWindow):
         self.btn_refresh.clicked.connect(self.show_data)
         self.filter_list.itemPressed.connect(self.update_filters)
         self.filter_view.itemPressed.connect(self.select_filter)
-        self.actionOpen.triggered.connect(self.open_file)     
-        self.start_stop = 0
+        self.actionOpen.triggered.connect(self.open_file)
+        self.actionAscii.triggered.connect(self.add_ascii)
+        self.data_provider = DataFrameProvider(pd.DataFrame())
 
     def set_status(self, status, warning_or_success='none'):
         self.display_status.setText(status)
@@ -38,29 +39,59 @@ class MainWindow(QMainWindow):
     def open_file(self):
         filepath, dummy = QFileDialog.getOpenFileName(self, 'Open File')
         if len(filepath) > 0:
-            self.loader = utils.cudfPkts.DataFrameLoader(filepath, chunk_size=100)
+            self.data_provider.clear_data()
+            self.tableview.clear_table()
+            self.btn_start_logger.setText("Stop reading")            
+            self.loader = FileLoader(self.data_provider, filepath, chunk_size=100)
             self.loader.data_loaded.connect(self.tableview.append_data)
+            self.loader.finished.connect(self.show_filter_list)
             self.loader.start()
+
+    def add_ascii(self):
+        selected_items = self.tableview.selectedItems()
+        if selected_items:
+            column_index = self.tableview.currentColumn()
+            column_name = self.tableview.horizontalHeaderItem(column_index).text()
+            print (column_name)
+        else:
+            column_name = "data"
+
+        self.data_provider.add_ascii_column(column_name)
+        self.show_data()
+        self.show_filter_list()        
+            
 
     def show_data(self):
         self.inline_search.setText("index==index")
         self.run_filter()
 
+    def show_filter_list(self):   
+        list_columns = self.data_provider.alldata.columns
+        self.filter_list.clear() 
+        for word in list_columns:
+            list_item = QListWidgetItem(str(word), self.filter_list)
+        self.btn_start_logger.setText("Start logging")             
+
     def update_filters(self):
-        column_name = self.filter_list.currentItem().text()                
-        list = cudfPkts.eval_filter('alldata.'+column_name+'.sort_values().unique()')
-        self.filter_view.clear() 
+        column_name = self.filter_list.currentItem().text()
+        list = self.data_provider.eval_filter('self.alldata.'+column_name+'.sort_values().unique()')
+        self.filter_view.clear()
         for word in list:
             list_item = QListWidgetItem(str(word), self.filter_view)
 
     def select_filter(self):
         column_name = self.filter_list.currentItem().text()
         argument = self.filter_view.currentItem().text()
+                
+        column_type = self.data_provider.alldata[column_name].dtype
+        if column_type == 'str':
+            argument = '"' + argument + '"'
+
         filter_argument = column_name +' == ' + argument
         self.inline_search.setText(filter_argument)
         self.run_filter()
 
-    def run_filter(self):        
+    def run_filter(self):
         filter_argument = self.inline_search.text()
         if len(filter_argument) > 0:
             try:
@@ -68,20 +99,15 @@ class MainWindow(QMainWindow):
 
                 if self.ai_checkBox.isChecked():
                     prompt = filter_argument
-                    data = cudfPkts.df_toJSON()
-                    prompt = aiPrompt.prepare_prompt(data, prompt)
-                    response = aiPrompt.get_completion (prompt)                    
+                    data = self.data_provider.df_toJSON()
+                    prompt = utils.aiPrompt.prepare_prompt(data, prompt)
+                    response = utils.aiPrompt.get_completion (prompt)
                     self.set_status(response)
                     filter_argument = response
                 
-                data = cudfPkts.query_filter(filter_argument)                
-
-                self.tableview.refresh_data(data)
-                
-                list_columns = data.columns
-                self.filter_list.clear() 
-                for word in list_columns:
-                    list_item = QListWidgetItem(str(word), self.filter_list)
+                data = self.data_provider.query_filter(filter_argument)
+                self.tableview.clear_table()
+                self.tableview.append_data(data)
                 self.set_status('Ready.')
             except Exception as e:
                 print (e)
@@ -90,20 +116,21 @@ class MainWindow(QMainWindow):
             self.set_status("Input a query e.g. identifier == 310 or check the AI box and use natural language.")
 
 
-
     def start_stop_logger(self):
-        if (self.start_stop):
-            self.start_stop = 0
-            self.loader.stop() 
-            self.loader = None
-            self.btn_start_logger.setText("Start Logging")
-
-        else:
-            self.btn_start_logger.setText("Stop Logging")
-            self.start_stop = 1
-            self.loader = sniffers.packetLoader.PacketLoader(chunk_size=1)
+        current_text = self.btn_start_logger.text()
+        if (current_text == "Start logging"):
+            self.btn_start_logger.setText("Stop logging")
+            self.data_provider.clear_data()
+            self.tableview.clear_table()            
+            iface = self.network_list.currentItem().text()
+            self.loader = PacketLoader(self.data_provider, iface, chunk_size=1)
             self.loader.packets_loaded.connect(self.tableview.append_data)
-            self.loader.start()
+            self.loader.start()        
+        else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
+            self.btn_start_logger.setText("Start logging")
+            self.loader.stop()
+            self.loader = None
+            self.show_filter_list()
 
 
 def openMainWindow(argv):

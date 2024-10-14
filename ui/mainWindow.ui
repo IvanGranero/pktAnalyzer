@@ -58,7 +58,7 @@
         <item>
          <widget class="QPushButton" name="btn_start_logger">
           <property name="text">
-           <string>Start Logging</string>
+           <string>Start logging</string>
           </property>
          </widget>
         </item>
@@ -111,6 +111,11 @@
     <property name="title">
      <string>Analysis</string>
     </property>
+    <addaction name="separator"/>
+    <addaction name="actionAscii"/>
+    <addaction name="actionbase64"/>
+    <addaction name="actionGraph"/>
+    <addaction name="actionCorrelation"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAnalysis"/>
@@ -126,14 +131,39 @@
     <string>Save</string>
    </property>
   </action>
+  <action name="actionAscii">
+   <property name="text">
+    <string>Ascii Column</string>
+   </property>
+  </action>
+  <action name="actionbase64">
+   <property name="text">
+    <string>base64 Column</string>
+   </property>
+  </action>
+  <action name="actionGraph">
+   <property name="text">
+    <string>Data visualization</string>
+   </property>
+  </action>
+  <action name="actionImport_DBC">
+   <property name="text">
+    <string>Import DBC</string>
+   </property>
+  </action>
+  <action name="actionCorrelation">
+   <property name="text">
+    <string>Signal correlation</string>
+   </property>
+  </action>
  </widget>
-<customwidgets> 
-    <customwidget>
-    <class>DataFrameWidget</class>
-    <extends>QTableWidget</extends>
-    <header>ui.DataFrameWidget</header>
+ <customwidgets>
+  <customwidget>
+   <class>DataFrameWidget</class>
+   <extends>QTableWidget</extends>
+   <header>ui.DataFrameWidget</header>
   </customwidget>
-</customwidgets>  
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

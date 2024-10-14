@@ -7,9 +7,13 @@ class DataFrameWidget(QTableWidget):
 
     def clear_table(self):
         self.clearContents()
+        self.setRowCount(0)
+        self.setColumnCount(0)
+
 
     def append_data(self, new_data):
-        current_row_count = self.rowCount()        
+        current_row_count = self.rowCount()
+
         if current_row_count == 0:            
             self.setRowCount(new_data.shape[0])
             self.setColumnCount(new_data.shape[1])
