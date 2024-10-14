@@ -1,22 +1,31 @@
 # pktLogger
 
 The pktLogger repository by IvanGranero is a tool for logging and analyzing network packets. It uses the `scapy` library to capture and inspect packets on a network interface. The repository includes several Python scripts, each handling different aspects of packet logging and analysis:
+# pktLogger
 
-- **`ethernetPkts.py`**: Handles Ethernet packet capture and processing.
-- **`converterTool.py`**: Converts packet data into a different format.
-- **`cudfPkts.py`**: Uses cuDF (a GPU-accelerated DataFrame library) for packet analysis.
-- **`logThread.py`**: Manages logging of packet data in a separate thread.
-- **`pktLogger.py`**: The main script that orchestrates packet capture and logging.
-- **`aiPrompt.py`**: Likely handles some form of AI-based analysis or prompt generation.
-- **`canPkts.py`**: Handles CAN (Controller Area Network) packets.
+pktLogger is a tool for logging and analyzing CAN bus data efficiently. This project supports various file formats and provides real-time analysis capabilities.
 
-## Getting Started
+## Table of Contents
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [File Formats Supported](#file-formats-supported)
+- [Contributing](#contributing)
+- [License](#license)
+
+### Features
+
+- Real-time CAN bus data logging.
+- Support for various file formats (log, CSV, Parquet).
+- Multi-threaded data processing for efficiency.
+- Data visualization and analysis.
 
 ### Prerequisites
 
 - Python 3.x
 - `scapy` library
-- `pandas` library (optional, if you use DataFrame operations)
+- `pandas` library
 - `cuDF` library (optional, if you use GPU-accelerated DataFrames)
 
 ### Installation
