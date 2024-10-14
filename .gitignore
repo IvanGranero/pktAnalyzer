@@ -1,0 +1,8 @@
+# ignore ALL .log files
+*.log
+
+# ignore .env
+.env
+
+# ignore ALL files in ANY directory named userfiles
+userfiles/
