@@ -1,6 +1,6 @@
 # pktLogger
 
-The pktLogger repository by IvanGranero is a tool for logging and analyzing CAN bus and Ethernet data efficiently. This project supports various file formats and provides real-time analysis capabilities.
+The pktLogger repository by IvanGranero is a powerful tool for logging and analyzing CAN bus and Ethernet data. It supports various file formats, provides real-time analysis capabilities, and leverages AI for advanced data analysis.
 
 ## Table of Contents
 - [Features](#features)
@@ -13,6 +13,7 @@ The pktLogger repository by IvanGranero is a tool for logging and analyzing CAN 
 
 ### Features
 
+- AI analysis to enhance its functionality.
 - Real-time CAN bus data logging.
 - Support for various file formats (log, pcap, csv, parquet).
 - Multi-threaded data processing for efficiency.
@@ -46,7 +47,9 @@ python pktLogger.py
 ### File Formats Supported
 
     log: CAN log files with detailed timestamps and flags.
-
+    
+    pcap: supports reading pcap files, making it easier to analyze pre-captured traffic.
+    
     CSV: Comma-separated values for structured data logging.
 
     Parquet: Efficient columnar storage file format.
