@@ -18,33 +18,6 @@ def get_completion(prompt, model="gpt-3.5-turbo", temperature=0):
   )
   return completion.choices[0].message.content
 
-
-#Voice prompting
-# def record_audio():
-#     recognizer = sr.Recognizer()
-
-#     with sr.Microphone() as source:
-#         print("Please speak now...")
-#         recognizer.adjust_for_ambient_noise(source)
-#         audio = recognizer.listen(source)
-
-#     print("Finish recording audio.")
-#     return audio
-
-#Definicion de una funcion para extraer el texto de la voz
-# def extract_text(audio):
-#     recognizer = sr.Recognizer()
-#     try:
-#         print("Recognizing audio...")
-#         text = recognizer.recognize_google(audio, language="en-US")  # you could adjust for other languages e.g. es-MX
-#         return text
-#     except sr.UnknownValueError:
-#         print("Audio is not recognizable")
-#         return None
-#     except sr.RequestError as e:
-#         print(f"Error while sending request to Google Speech Recognition: {e}")
-#         return None
-
 #Prompt text internal definition
 def prepare_prompt(data, prompt):
     # prompt_internal = f"""

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDia
 #from ui import DataFrameWidget
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
-from utils.dataframeProvider import DataFrameProvider
+from utils.dataframeProvider import DataFrameProvider, REPLThread
 from utils.fileLoader import FileLoader
 import utils.aiPrompt
 import pandas as pd
@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.w = None
-        loadUi("ui/mainWindow.ui", self)        
+        loadUi("ui/mainWindow.ui", self)
         for word in ['eth', 'can']:
             list_item = QListWidgetItem(str(word), self.network_list)
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
@@ -26,6 +26,9 @@ class MainWindow(QMainWindow):
         self.actionOpen.triggered.connect(self.open_file)
         self.actionAscii.triggered.connect(self.add_ascii)
         self.data_provider = DataFrameProvider(pd.DataFrame())
+        repl_thread = REPLThread(self.data_provider)
+        repl_thread.start()
+
 
     def set_status(self, status, warning_or_success='none'):
         self.display_status.setText(status)
@@ -65,12 +68,12 @@ class MainWindow(QMainWindow):
         self.inline_search.setText("index==index")
         self.run_filter()
 
-    def show_filter_list(self):   
+    def show_filter_list(self):
         list_columns = self.data_provider.alldata.columns
         self.filter_list.clear() 
         for word in list_columns:
             list_item = QListWidgetItem(str(word), self.filter_list)
-        self.btn_start_logger.setText("Start logging")             
+        self.btn_start_logger.setText("Start logging")
 
     def update_filters(self):
         column_name = self.filter_list.currentItem().text()
@@ -82,11 +85,9 @@ class MainWindow(QMainWindow):
     def select_filter(self):
         column_name = self.filter_list.currentItem().text()
         argument = self.filter_view.currentItem().text()
-                
         column_type = self.data_provider.alldata[column_name].dtype
-        if column_type == 'str':
+        if column_type == 'str' or column_type == 'string':
             argument = '"' + argument + '"'
-
         filter_argument = column_name +' == ' + argument
         self.inline_search.setText(filter_argument)
         self.run_filter()
@@ -103,9 +104,10 @@ class MainWindow(QMainWindow):
                     prompt = utils.aiPrompt.prepare_prompt(data, prompt)
                     response = utils.aiPrompt.get_completion (prompt)
                     self.set_status(response)
+                    print (response)
                     filter_argument = response
                 
-                data = self.data_provider.query_filter(filter_argument)
+                data = self.data_provider.query_filter(filter_argument)                
                 self.tableview.clear_table()
                 self.tableview.append_data(data)
                 self.set_status('Ready.')

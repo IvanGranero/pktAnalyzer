@@ -1,8 +1,30 @@
 import pandas as pd
+import threading
+
+class REPLThread(threading.Thread):
+    def __init__(self, df_handler):
+        super().__init__()
+        self.df_handler = df_handler
+
+    def run(self):
+        self.df_handler.repl()
 
 class DataFrameProvider:
     def __init__(self, dataframe):
         self.alldata = dataframe        # Dataframe to be used across clasess by sharing the same instance
+
+    def repl(self):
+        print("Interactive mode. Type 'exit' to quit.")
+        while True:
+            command = input(">>> ")
+            if command == 'exit':
+                break
+            try:
+                # Execute the command within the context of this instance
+                result = eval(command, {'self': self, 'pd': pd})
+                print(result)
+            except Exception as e:
+                print(f"Error: {e}")
 
     def clear_data(self):
         del self.alldata
@@ -47,10 +69,7 @@ class DataFrameProvider:
         self.alldata['dataascii'] = self.alldata['dataascii'].astype(str)
 
     def to_ascii(self, datahex):
-        dataascii = ""
-        for i in range(0, len(datahex), 2):
-            if 32 <= int(datahex[i : i + 2], 16) <= 126:
-                dataascii += chr(int(datahex[i : i + 2], 16))                    
-            else:
-                dataascii += "."
-        return dataascii
+        return ''.join(
+            chr(int(datahex[i:i + 2], 16)) if 32 <= int(datahex[i:i + 2], 16) <= 126 else '.'
+            for i in range(0, len(datahex), 2)
+        )

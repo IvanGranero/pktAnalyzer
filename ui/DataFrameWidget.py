@@ -18,7 +18,7 @@ class DataFrameWidget(QTableWidget):
             self.setRowCount(new_data.shape[0])
             self.setColumnCount(new_data.shape[1])
             self.setHorizontalHeaderLabels(new_data.columns)
-            self.verticalHeader().setVisible(False)
+            #self.verticalHeader().setVisible(False)
             self.setSortingEnabled(True)
         else:
             self.setRowCount(current_row_count + new_data.shape[0])
