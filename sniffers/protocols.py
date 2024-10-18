@@ -8,6 +8,9 @@ import pandas as pd
 
 class ProtocolHandler:
     def handle(self, packet, packet_data={}):
+        packet_data['time'] = packet.time
+        packet_data['src'] = packet.src
+        packet_data['dst'] = packet.dst        
         self.process_packet(packet, packet_data)
         packet_data['info'] = packet.summary()
         return packet_data
@@ -33,7 +36,7 @@ class UDPHandler(ProtocolHandler):
         packet_data['protocol'] = 'UDP'
         if packet.haslayer(IP):
             packet_data['src'] = packet[IP].src
-            packet_data['dst'] = packet[IP].dst
+            packet_data['dst'] = packet[IP].dst        
         packet_data['sport'] = packet[UDP].sport
         packet_data['dport'] = packet[UDP].dport
 

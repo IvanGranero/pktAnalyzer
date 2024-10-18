@@ -1,6 +1,5 @@
 import os
 from openai import OpenAI
-#import speech_recognition as sr
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,11 +24,9 @@ def prepare_prompt(data, prompt):
     # If a calculation is required from the data, such as determining the total number of CAN IDs in the log file, perform the calculation, verify the output, and provide only the final result. If you are unable to perform the calculation, respond with "I wasn't able to do the calculation, please repeat your question."
     # """
     prompt_internal = f"""
-    You are an expert on Pandas, specializing in DataFrame query functions,
-    with extensive knowledge of various examples demonstrating their use. The dataframe data is provided in a JSON file.
-    The question you need to answer is delimited by angle brackets.
-    Your task is to create an expression that can be used inside Dataframe.query() to answer the given question using the dataframe.
-    For example if the question is show all the data the answer would be index==index
+    You are a Pandas DataFrame expert. You will receive a DataFrame in JSON format named 'data'. 
+    Your task is to create an expression to be used with eval() to answer the question enclosed in angle brackets. 
+    For example, for the question: <show all rows where 'identifier' is '310'>, provide: data[data['identifier'] == '310'].
     """
     promptsys = f"{prompt_internal}"
     promptuser = f"{data}\n\nQuery or question: < {prompt} >"

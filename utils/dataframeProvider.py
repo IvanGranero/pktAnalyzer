@@ -1,30 +1,8 @@
 import pandas as pd
-import threading
-
-class REPLThread(threading.Thread):
-    def __init__(self, df_handler):
-        super().__init__()
-        self.df_handler = df_handler
-
-    def run(self):
-        self.df_handler.repl()
 
 class DataFrameProvider:
-    def __init__(self, dataframe):
-        self.alldata = dataframe        # Dataframe to be used across clasess by sharing the same instance
-
-    def repl(self):
-        print("Interactive mode. Type 'exit' to quit.")
-        while True:
-            command = input(">>> ")
-            if command == 'exit':
-                break
-            try:
-                # Execute the command within the context of this instance
-                result = eval(command, {'self': self, 'pd': pd})
-                print(result)
-            except Exception as e:
-                print(f"Error: {e}")
+    def __init__(self):
+        self.alldata = pd.DataFrame() # Dataframe to be used across clasess by sharing the same instance
 
     def clear_data(self):
         del self.alldata
@@ -47,17 +25,18 @@ class DataFrameProvider:
                 self.alldata.to_csv(file_name+'.csv', sep='\t')
         print("Saved as bufferdump.")
 
-
     def df_toJSON(self):
         try:
-            datos = self.alldata.head(10)
+            datos = self.alldata.head(5)
             datos = datos.to_json(default_handler=str, orient="records")
         except Exception as e:
             print (e)
         return datos
 
     def query_filter(self, filter_argument):
-        return self.alldata.query(filter_argument)
+        #return self.alldata.query(filter_argument)
+        ## Need to sanitize the input to avoid code injection
+        return eval(filter_argument, {'data': self.alldata})    
 
     def eval_filter(self, filter_argument):
         return pd.eval(filter_argument)

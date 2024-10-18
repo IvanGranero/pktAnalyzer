@@ -1,13 +1,12 @@
 import signal, sys
-
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
-#from ui import DataFrameWidget
+from ui.replWidget import REPL
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
-from utils.dataframeProvider import DataFrameProvider, REPLThread
+from utils.dataframeProvider import DataFrameProvider
 from utils.fileLoader import FileLoader
 import utils.aiPrompt
-import pandas as pd
+import matplotlib.pyplot as plt
 
 # Subclass MainWindow to customize your application's main window
 class MainWindow(QMainWindow):
@@ -25,10 +24,14 @@ class MainWindow(QMainWindow):
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
         self.actionAscii.triggered.connect(self.add_ascii)
-        self.data_provider = DataFrameProvider(pd.DataFrame())
-        repl_thread = REPLThread(self.data_provider)
-        repl_thread.start()
+        self.actionGraph.triggered.connect(self.add_plot)        
+        self.data_provider = DataFrameProvider()
+        self.repl = REPL(self.data_provider)
+        self.repl.show()        
 
+    def closeEvent(self, event):
+        self.repl.close()
+        event.accept()
 
     def set_status(self, status, warning_or_success='none'):
         self.display_status.setText(status)
@@ -42,6 +45,7 @@ class MainWindow(QMainWindow):
     def open_file(self):
         filepath, dummy = QFileDialog.getOpenFileName(self, 'Open File')
         if len(filepath) > 0:
+            self.set_status("Reading file...")
             self.data_provider.clear_data()
             self.tableview.clear_table()
             self.btn_start_logger.setText("Stop reading")            
@@ -55,17 +59,30 @@ class MainWindow(QMainWindow):
         if selected_items:
             column_index = self.tableview.currentColumn()
             column_name = self.tableview.horizontalHeaderItem(column_index).text()
-            print (column_name)
+            self.set_status('Busy... Please wait!')
+            self.data_provider.add_ascii_column(column_name)
+            self.show_data()
+            self.show_filter_list()      
+            self.set_status('Ready.')      
         else:
-            column_name = "data"
+            self.set_status("Select a column to convert to ASCII.")
 
-        self.data_provider.add_ascii_column(column_name)
-        self.show_data()
-        self.show_filter_list()        
-            
+    def add_plot(self):
+        selected_items = self.tableview.selectedItems()
+        if selected_items:
+            column_index = self.tableview.currentColumn()
+            column_name = self.tableview.horizontalHeaderItem(column_index).text()
+        else:
+            self.set_status("Select a column to plot.")
+
+        plt.plot(self.data_provider.alldata[column_name])
+        plt.title(column_name)
+        plt.xlabel('index')
+        plt.ylabel(column_name)
+        plt.show()
 
     def show_data(self):
-        self.inline_search.setText("index==index")
+        self.inline_search.setText("data")
         self.run_filter()
 
     def show_filter_list(self):
@@ -74,10 +91,13 @@ class MainWindow(QMainWindow):
         for word in list_columns:
             list_item = QListWidgetItem(str(word), self.filter_list)
         self.btn_start_logger.setText("Start logging")
+        self.set_status("Ready.")
 
     def update_filters(self):
         column_name = self.filter_list.currentItem().text()
-        list = self.data_provider.eval_filter('self.alldata.'+column_name+'.sort_values().unique()')
+        #list = self.data_provider.query_filter("sorted(data['"+column_name+"'].unique())")
+        self.repl.input.setText("sorted(data['"+column_name+"'].unique())")
+        list = self.repl.evaluate()
         self.filter_view.clear()
         for word in list:
             list_item = QListWidgetItem(str(word), self.filter_view)
@@ -88,7 +108,8 @@ class MainWindow(QMainWindow):
         column_type = self.data_provider.alldata[column_name].dtype
         if column_type == 'str' or column_type == 'string':
             argument = '"' + argument + '"'
-        filter_argument = column_name +' == ' + argument
+        #filter_argument = column_name +' == ' + argument
+        filter_argument = "data[data['"+ column_name + "'] == "+argument+"]"
         self.inline_search.setText(filter_argument)
         self.run_filter()
 
@@ -102,12 +123,14 @@ class MainWindow(QMainWindow):
                     prompt = filter_argument
                     data = self.data_provider.df_toJSON()
                     prompt = utils.aiPrompt.prepare_prompt(data, prompt)
-                    response = utils.aiPrompt.get_completion (prompt)
-                    self.set_status(response)
-                    print (response)
-                    filter_argument = response
-                
-                data = self.data_provider.query_filter(filter_argument)                
+                    filter_argument = utils.aiPrompt.get_completion (prompt)                   
+                    self.set_status(filter_argument)
+
+                if self.repl.isVisible():
+                    self.repl.input.setText(filter_argument)
+                    data = self.repl.evaluate()
+                else:
+                    data = self.data_provider.query_filter(filter_argument)       
                 self.tableview.clear_table()
                 self.tableview.append_data(data)
                 self.set_status('Ready.')
@@ -116,7 +139,6 @@ class MainWindow(QMainWindow):
                 self.set_status('There was a problem with the calculation','warning')
         else:
             self.set_status("Input a query e.g. identifier == 310 or check the AI box and use natural language.")
-
 
     def start_stop_logger(self):
         current_text = self.btn_start_logger.text()
@@ -130,21 +152,19 @@ class MainWindow(QMainWindow):
             self.loader.start()        
         else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
             self.btn_start_logger.setText("Start logging")
+            self.set_status("Ready.")            
             self.loader.stop()
             self.loader = None
             self.show_filter_list()
 
-
 def openMainWindow(argv):
-    app = QApplication(argv)    
+    app = QApplication(argv)     
     window = MainWindow()
     window.show()
     app.exec()
 
-
 def handler_interrupt(signal, frame):
     sys.exit(0)
-
 
 def main():
     # add try catch to all 
@@ -154,7 +174,6 @@ def main():
         print ("command line options not available yet")   
 
     openMainWindow(sys.argv)
-    
 
 if __name__ == "__main__":
     main()
