@@ -1,5 +1,7 @@
 # ignore ALL .log files
 *.log
+*.pcap
+*.pcapng
 
 # ignore .env
 .env
