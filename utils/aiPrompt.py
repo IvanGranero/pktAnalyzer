@@ -17,12 +17,8 @@ def get_completion(prompt, model="gpt-3.5-turbo", temperature=0):
   )
   return completion.choices[0].message.content
 
-#Prompt text internal definition
-def prepare_prompt(data, prompt):
-    # prompt_internal = f"""
-    # You are a network expert specialized in Ethernet, Automotive Ethernet, DoIP, CAN, ISO-TP, UDS, and all automotive protocols. The network and log data are provided in JSON format. Your task is to answer queries using the data from the JSON file. The query or question you need to answer is delimited by angle brackets.
-    # If a calculation is required from the data, such as determining the total number of CAN IDs in the log file, perform the calculation, verify the output, and provide only the final result. If you are unable to perform the calculation, respond with "I wasn't able to do the calculation, please repeat your question."
-    # """
+#Prompt text for a dataframe expert
+def prepare_eval_prompt(data, prompt):
     prompt_internal = f"""
     You are a Pandas DataFrame expert. You will receive a DataFrame in JSON format named 'data'. 
     Your task is to create an expression to be used with eval() to answer the question enclosed in angle brackets. 
@@ -33,10 +29,18 @@ def prepare_prompt(data, prompt):
     messages = [{"role": "system", "content": promptsys}, {"role": "user", "content": promptuser}]
     return messages
 
-def first_words(text, limit=4000):
-    words = text.split()
-    if len(words) <= limit:
-        return text
-    else:        
-        return ' '.join(words[:limit])
+#Prompt text for updating protocol fields
+def prepare_scapy_prompt(prompt):
+    prompt_internal = f"""
+    You are an AI assistant helping to expand a list of important fields for various network protocol layers. Provide concise, accurate information.
+    """
+    promptsys = f"{prompt_internal}"
+    promptuser = f"Please list the important fields for the {prompt} layer in Scapy, separated by commas."
+    messages = [{"role": "system", "content": promptsys}, {"role": "user", "content": promptuser}]
+    return messages
 
+  ## Add another prep prompt to analyze just the payloads
+    # prompt_internal = f"""
+    # You are a network expert specialized in Ethernet, Automotive Ethernet, DoIP, CAN, ISO-TP, UDS, and all automotive protocols. The network and log data are provided in JSON format. Your task is to answer queries using the data from the JSON file. The query or question you need to answer is delimited by angle brackets.
+    # If a calculation is required from the data, such as determining the total number of CAN IDs in the log file, perform the calculation, verify the output, and provide only the final result. If you are unable to perform the calculation, respond with "I wasn't able to do the calculation, please repeat your question."
+    # """

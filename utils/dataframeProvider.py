@@ -36,7 +36,7 @@ class DataFrameProvider:
     def query_filter(self, filter_argument):
         #return self.alldata.query(filter_argument)
         ## Need to sanitize the input to avoid code injection
-        return eval(filter_argument, {'data': self.alldata})    
+        return eval(filter_argument, {'data': self.alldata})
 
     def eval_filter(self, filter_argument):
         return pd.eval(filter_argument)

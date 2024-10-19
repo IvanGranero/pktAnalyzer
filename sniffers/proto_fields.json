@@ -1,0 +1,34 @@
+{
+    "Raw": {
+        "data": "load"
+    },    
+    "Ether": {
+        "source": "src",
+        "destination": "dst",
+        "protocol": "type"
+    },
+    "IP": {
+        "source": "src",
+        "destination": "dst",
+        "identifier": "id",
+        "protocol": "proto"
+    },
+    "TCP": {
+        "source": "sport",
+        "destination": "dport",
+        "port": "sport",
+        "data": "dataofs"
+    },
+    "UDP": {
+        "source": "sport",
+        "destination": "dport",
+        "port": "sport",
+        "data": "len"
+    },
+    "CAN": {
+        "identifier": "id",
+        "source": "src",
+        "destination": "dst",
+        "data": "data"
+    }
+}

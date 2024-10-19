@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
         self.actionAscii.triggered.connect(self.add_ascii)
-        self.actionGraph.triggered.connect(self.add_plot)        
+        self.actionGraph.triggered.connect(self.add_plot)
         self.data_provider = DataFrameProvider()
         self.repl = REPL(self.data_provider)
         self.repl.show()        

@@ -1,90 +1,33 @@
-from scapy.layers.inet import IP, TCP, UDP
-from scapy.layers.http import HTTPRequest, HTTPResponse
-from scapy.layers.can import CAN, CAN_FD_MAX_DLEN as CAN_FD_MAX_DLEN
-from scapy.contrib.automotive.uds import UDS
-from scapy.contrib.automotive.doip import DoIP
-from scapy.contrib.isotp import ISOTP
+from struct import pack
 import pandas as pd
+from json import load as loadjson
 
-class ProtocolHandler:
-    def handle(self, packet, packet_data={}):
-        packet_data['time'] = packet.time
-        packet_data['src'] = packet.src
-        packet_data['dst'] = packet.dst        
-        self.process_packet(packet, packet_data)
-        packet_data['info'] = packet.summary()
-        return packet_data
+# Load the important fields from JSON file
+with open('sniffers/proto_fields.json', 'r') as file:
+    important_fields = loadjson(file)
 
-    def process_packet(self, packet, packet_data={}):
-        raise NotImplementedError("Subclasses must implement this method")
+def protocol_handler(packet):
+    layer = packet
+    packet_data = {
+        'time': packet.time,
+        'length': len(packet)
+    }
 
-class HTTPHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'HTTP'
+    while layer:
+        layer_name = layer.__class__.__name__
+        if layer_name in important_fields:
+            for key, field in important_fields[layer_name].items():
+                try:
+                    packet_data[key] = layer.getfieldval(field)
+                except (AttributeError, KeyError):
+                    pass
+        layer = layer.payload if layer.payload else None
 
-class TCPHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'TCP'
-        if packet.haslayer(IP):        
-            packet_data['src'] = packet[IP].src
-            packet_data['dst'] = packet[IP].dst
-        packet_data['sport'] = packet[TCP].sport
-        packet_data['dport'] = packet[TCP].dport
-
-class UDPHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'UDP'
-        if packet.haslayer(IP):
-            packet_data['src'] = packet[IP].src
-            packet_data['dst'] = packet[IP].dst        
-        packet_data['sport'] = packet[UDP].sport
-        packet_data['dport'] = packet[UDP].dport
+    packet_data['protocol'] = layer_name
+    try:
+        packet_data['Info'] = packet.summary()
+    except (AttributeError, KeyError):
+        pass
+    return pd.DataFrame([packet_data])
 
 
-class DoIPHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'DoIP'
-
-class UDSHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'UDS'
-
-class ISOTPHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'ISOTP'
-
-class CANHandler(ProtocolHandler):
-    def process_packet(self, packet, packet_data={}):
-        packet_data['protocol'] = 'CAN'
-        for field in CAN().fields_desc:
-            try:
-                field = field.name
-                if field == 'flags':        
-                    packet_data[field] = packet.fields[field].flagrepr()                
-                else:
-                    packet_data[field] = packet.fields[field]
-            except: 
-                packet_data[field] = None
-
-        datahex = packet.fields['data'].hex()
-        datahex_with_spaces = ' '.join(datahex[i:i+2] for i in range(0, len(datahex), 2))
-        packet_data['data'] = datahex_with_spaces
-
-protocol_handlers = {
-    'HTTPRequest': HTTPHandler(),
-    'HTTPResponse': HTTPHandler(),
-    'TCP': TCPHandler(),
-    'UDP': UDPHandler(),
-    'DoIP': DoIPHandler(),
-    'UDS': UDSHandler(),
-    'ISOTP': ISOTPHandler(),
-    'CAN': CANHandler()
-}
-
-def protocol_handler(packet, packet_data = {}):
-    for protocol, handler in protocol_handlers.items():
-        if packet.haslayer(eval(protocol)):
-            handler.handle(packet, packet_data)
-    packet_data = {k: [v] for k, v in packet_data.items()}
-    new_df = pd.DataFrame(packet_data)
-    return new_df
