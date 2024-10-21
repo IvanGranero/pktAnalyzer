@@ -3,10 +3,34 @@ import pandas as pd
 class DataFrameProvider:
     def __init__(self):
         self.alldata = pd.DataFrame() # Dataframe to be used across clasess by sharing the same instance
+        self.packetlist = [] # List of scapy packets
 
     def clear_data(self):
         del self.alldata
         self.alldata = pd.DataFrame()
+        self.packetlist.clear()
+
+    def append_data(self, chunk, packets=None):
+        # Identify numeric and string columns
+        numeric_cols = chunk.select_dtypes(include='number').columns
+        string_cols = chunk.select_dtypes(include='object').columns
+        # Fill NA/None values with appropriate defaults
+        chunk = chunk.fillna({col: 0 for col in numeric_cols})
+        chunk = chunk.fillna({col: '' for col in string_cols})
+        # Convert columns to appropriate data types
+        chunk.convert_dtypes()
+        # Remove duplicates, not needed for now
+        #chunk = chunk.drop_duplicates()
+        # Add a unique index to the DataFrame if not already present
+        if 'packet_id' not in chunk.columns:
+            chunk['no'] = range(len(self.alldata), len(self.alldata) + len(chunk))
+        # Concatenate the chunk to the main dataframe
+        self.alldata = pd.concat([self.alldata, chunk], ignore_index=True)
+        # Append packets to packetlist if provided
+        if packets is not None:
+            self.packetlist.extend(packets)
+        # Return the sanitized chunk
+        return chunk
 
     def save_packets(self, file_name):
         print ("Saving log to a file")
@@ -44,7 +68,7 @@ class DataFrameProvider:
     # maybe change them to another python file to add all the analysis decoders such as base64
 
     def add_ascii_column(self, column_source):
-        self.alldata['dataascii'] = self.alldata[column_source].apply(self.to_ascii)
+        self.alldata['dataascii'] = self.alldata['data'].apply(self.to_ascii)
         self.alldata['dataascii'] = self.alldata['dataascii'].astype(str)
 
     def to_ascii(self, datahex):

@@ -1,7 +1,4 @@
-{
-    "Raw": {
-        "data": "load"
-    },    
+{  
     "Ether": {
         "source": "src",
         "destination": "dst",
@@ -10,25 +7,37 @@
     "IP": {
         "source": "src",
         "destination": "dst",
-        "identifier": "id",
         "protocol": "proto"
     },
     "TCP": {
-        "source": "sport",
-        "destination": "dport",
-        "port": "sport",
-        "data": "dataofs"
+        "port": "sport"
     },
     "UDP": {
-        "source": "sport",
-        "destination": "dport",
-        "port": "sport",
-        "data": "len"
+        "port": "sport"
     },
     "CAN": {
-        "identifier": "id",
-        "source": "src",
-        "destination": "dst",
+        "identifier": "identifier",
+        "length": "length"
+    },
+    "CANFD": {
+        "identifier": "identifier",
+        "length": "length"
+    },
+    "J1939": {
+        "pgn": "pgn",
+        "priority": "priority",
+        "source": "source",
+        "destination": "destination"
+    },
+    "ISO-TP": {
+        "source": "source",
+        "destination": "destination"
+    },
+    "DoIP": {
         "data": "data"
+    },
+    "UDS": {
+        "source": "source",
+        "destination": "destination"
     }
 }

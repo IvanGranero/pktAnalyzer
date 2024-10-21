@@ -11,7 +11,7 @@ class DataFrameWidget(QTableWidget):
         self.setColumnCount(0)
 
 
-    def append_data(self, new_data):
+    def append_data(self, new_data, liveview=False):
         current_row_count = self.rowCount()
 
         if current_row_count == 0:            
@@ -29,3 +29,12 @@ class DataFrameWidget(QTableWidget):
 
         #self.resizeColumnsToContents()
         #self.resizeRowsToContents()
+        if liveview:
+            last_row_index = self.rowCount()-1
+            self.scrollToBottom()  # Scroll to the bottom of the table
+            # Need to add user settings for chose live view or not
+            # Manually emit the cellClicked signal
+            self.cellClicked.emit(last_row_index, 0)  # Adjust the column index if needed
+
+
+        

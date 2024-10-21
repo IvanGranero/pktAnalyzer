@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1171</width>
-    <height>876</height>
+    <width>900</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -54,18 +54,11 @@
        <widget class="DataFrameWidget" name="tableview"/>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,2,2,80">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,2,80">
         <item>
          <widget class="QPushButton" name="btn_start_logger">
           <property name="text">
            <string>Start logging</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_refresh">
-          <property name="text">
-           <string>Show all data</string>
           </property>
          </widget>
         </item>
@@ -83,6 +76,28 @@
      </layout>
     </item>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <property name="rightMargin">
+       <number>6</number>
+      </property>
+      <item>
+       <widget class="QTreeWidget" name="packet_inspector">
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTextEdit" name="data_inspector"/>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QLabel" name="display_status">
       <property name="text">
        <string>Ready</string>
@@ -96,7 +111,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1171</width>
+     <width>900</width>
      <height>22</height>
     </rect>
    </property>
@@ -109,16 +124,48 @@
    </widget>
    <widget class="QMenu" name="menuAnalysis">
     <property name="title">
-     <string>Analysis</string>
+     <string>Analyze</string>
     </property>
     <addaction name="separator"/>
     <addaction name="actionAscii"/>
     <addaction name="actionbase64"/>
-    <addaction name="actionGraph"/>
     <addaction name="actionCorrelation"/>
    </widget>
+   <widget class="QMenu" name="menuSniff">
+    <property name="title">
+     <string>Sniff</string>
+    </property>
+    <addaction name="actionStart"/>
+    <addaction name="actionStop"/>
+    <addaction name="actionRestart"/>
+    <addaction name="separator"/>
+    <addaction name="actionOptions"/>
+   </widget>
+   <widget class="QMenu" name="menuPlot">
+    <property name="title">
+     <string>Plot</string>
+    </property>
+    <addaction name="actionGraph"/>
+   </widget>
+   <widget class="QMenu" name="menuTOols">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionOpen_REPL"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionUser_s_Guide"/>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuSniff"/>
    <addaction name="menuAnalysis"/>
+   <addaction name="menuPlot"/>
+   <addaction name="menuTOols"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -141,11 +188,6 @@
     <string>base64 Column</string>
    </property>
   </action>
-  <action name="actionGraph">
-   <property name="text">
-    <string>Data visualization</string>
-   </property>
-  </action>
   <action name="actionImport_DBC">
    <property name="text">
     <string>Import DBC</string>
@@ -154,6 +196,52 @@
   <action name="actionCorrelation">
    <property name="text">
     <string>Signal correlation</string>
+   </property>
+  </action>
+  <action name="actionUser_s_Guide">
+   <property name="text">
+    <string>User's Guide</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionStart">
+   <property name="text">
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionRestart">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Restart</string>
+   </property>
+  </action>
+  <action name="actionOptions">
+   <property name="text">
+    <string>Options</string>
+   </property>
+  </action>
+  <action name="actionGraph">
+   <property name="text">
+    <string>Data Visualization</string>
+   </property>
+  </action>
+  <action name="actionOpen_REPL">
+   <property name="text">
+    <string>Open REPL</string>
    </property>
   </action>
  </widget>

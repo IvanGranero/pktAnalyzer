@@ -4,7 +4,6 @@ from sniffers.protocols import protocol_handler
 from scapy.all import PcapReader
 from scapy.layers.can import CandumpReader
 
-
 class FileLoader(QThread):
     data_loaded = pyqtSignal(pd.DataFrame)
     finished = pyqtSignal()
@@ -31,46 +30,46 @@ class FileLoader(QThread):
                         notEOF = False
                     if not packets:
                         break
-                    dfs = []
-                    for packet in packets:
-                        df = protocol_handler(packet)
-                        dfs.append(df)
+
+                    dfs = [protocol_handler(packet) for packet in packets]
                     dfs = pd.concat(dfs, ignore_index=True)
-                    self.provider.alldata = pd.concat([self.provider.alldata, dfs], ignore_index=True)
+                    dfs = self.provider.append_data(dfs, packets)
                     self.data_loaded.emit(dfs)
 
         elif file_extension == 'log':
             dfs = []
+            pkts = []
             with CandumpReader(self.file_path) as log_reader:
                 for i, packet in enumerate(log_reader, start=1):
                     df = protocol_handler(packet)
                     dfs.append(df)
+                    pkts.append(packet)
                     if i % self.chunk_size == 0:
                         df_chunk = pd.concat(dfs, ignore_index=True)
-                        self.provider.alldata = pd.concat([self.provider.alldata, df_chunk], ignore_index=True)
+                        df_chunk = self.provider.append_data(df_chunk, pkts)
                         self.data_loaded.emit(df_chunk)
                         dfs = []
+                        pkts = []
                 if dfs:
                     df_chunk = pd.concat(dfs, ignore_index=True)
-                    self.provider.alldata = pd.concat([self.provider.alldata, df_chunk], ignore_index=True)
+                    df_chunk = self.provider.append_data(df_chunk, pkts)
                     self.data_loaded.emit(df_chunk)
 
         elif file_extension == 'csv':
             for chunk in pd.read_csv(self.file_path, chunksize=self.chunk_size):
                 if not self._is_running:
                     break                
-                self.provider.alldata = pd.concat([self.provider.alldata, chunk], ignore_index=True)    
+                chunk = self.provider.append_data(chunk)
                 self.data_loaded.emit(chunk)
 
         elif file_extension == 'parquet':
-            self.provider.alldata = pd.read_parquet(self.file_path)
-            self.data_loaded.emit(self.provider.alldata)
+            chunk = pd.read_parquet(self.file_path)
+            chunk = self.provider.append_data(chunk)              
+            self.data_loaded.emit(chunk)
 
         else:
             print("Unsupported file type.") # NEED TO RAISE EXCEPTION TO CHANGE STATUS IN THE GUI
 
-        self.provider.alldata = self.provider.alldata.convert_dtypes()
-        self.provider.alldata = self.provider.alldata.apply(lambda col: col.astype('int64') if col.dtype == 'Int64' else col)
         self.finished.emit()
 
     def stop(self):

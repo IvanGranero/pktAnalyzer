@@ -1,5 +1,5 @@
 import signal, sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
 from ui.replWidget import REPL
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
@@ -16,18 +16,19 @@ class MainWindow(QMainWindow):
         loadUi("ui/mainWindow.ui", self)
         for word in ['eth', 'can']:
             list_item = QListWidgetItem(str(word), self.network_list)
+        self.tableview.cellClicked.connect(self.show_packet)
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
         self.btn_run_filter.clicked.connect(self.run_filter)
-        self.btn_refresh.clicked.connect(self.show_data)
         self.filter_list.itemPressed.connect(self.update_filters)
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
         self.actionAscii.triggered.connect(self.add_ascii)
         self.actionGraph.triggered.connect(self.add_plot)
+        self.actionStart.triggered.connect(self.start_logger)
+        self.actionOpen_REPL.triggered.connect(self.open_repl)
         self.data_provider = DataFrameProvider()
         self.repl = REPL(self.data_provider)
-        self.repl.show()        
 
     def closeEvent(self, event):
         self.repl.close()
@@ -51,7 +52,7 @@ class MainWindow(QMainWindow):
             self.btn_start_logger.setText("Stop reading")            
             self.loader = FileLoader(self.data_provider, filepath, chunk_size=100)
             self.loader.data_loaded.connect(self.tableview.append_data)
-            self.loader.finished.connect(self.show_filter_list)
+            self.loader.finished.connect(self.file_loaded)
             self.loader.start()
 
     def add_ascii(self):
@@ -61,9 +62,8 @@ class MainWindow(QMainWindow):
             column_name = self.tableview.horizontalHeaderItem(column_index).text()
             self.set_status('Busy... Please wait!')
             self.data_provider.add_ascii_column(column_name)
-            self.show_data()
-            self.show_filter_list()      
-            self.set_status('Ready.')      
+            self.update_columns_list()
+            self.set_status('Ready.')
         else:
             self.set_status("Select a column to convert to ASCII.")
 
@@ -81,17 +81,18 @@ class MainWindow(QMainWindow):
         plt.ylabel(column_name)
         plt.show()
 
-    def show_data(self):
-        self.inline_search.setText("data")
-        self.run_filter()
+    def file_loaded(self):
+        self.btn_start_logger.setText("Start logging")
+        self.actionRestart.setEnabled(True)
+        self.update_columns_list()
+        self.tableview.cellClicked.emit(0, 0)
+        self.set_status("Ready.")
 
-    def show_filter_list(self):
+    def update_columns_list(self):
         list_columns = self.data_provider.alldata.columns
         self.filter_list.clear() 
         for word in list_columns:
             list_item = QListWidgetItem(str(word), self.filter_list)
-        self.btn_start_logger.setText("Start logging")
-        self.set_status("Ready.")
 
     def update_filters(self):
         column_name = self.filter_list.currentItem().text()
@@ -122,6 +123,7 @@ class MainWindow(QMainWindow):
                 if self.ai_checkBox.isChecked():
                     prompt = filter_argument
                     data = self.data_provider.df_toJSON()
+                    print (data)
                     prompt = utils.aiPrompt.prepare_prompt(data, prompt)
                     filter_argument = utils.aiPrompt.get_completion (prompt)                   
                     self.set_status(filter_argument)
@@ -140,22 +142,66 @@ class MainWindow(QMainWindow):
         else:
             self.set_status("Input a query e.g. identifier == 310 or check the AI box and use natural language.")
 
+    def start_logger(self):
+        self.btn_start_logger.setText("Start logging")
+        self.start_stop_logger()
+
     def start_stop_logger(self):
         current_text = self.btn_start_logger.text()
-        if (current_text == "Start logging"):
+        if current_text.endswith("tart logging"):
+            if current_text == "Start logging":
+                self.data_provider.clear_data()
+                self.tableview.clear_table()
+
             self.btn_start_logger.setText("Stop logging")
-            self.data_provider.clear_data()
-            self.tableview.clear_table()            
+            self.actionStart.setEnabled(False)
+            self.actionRestart.setEnabled(False)
+            # CHange to read the interface from the options settings, give it as a parameter to PacketLoader
             iface = self.network_list.currentItem().text()
             self.loader = PacketLoader(self.data_provider, iface, chunk_size=1)
             self.loader.packets_loaded.connect(self.tableview.append_data)
-            self.loader.start()        
+            self.loader.start()
+            self.set_status("Logging...") 
         else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
-            self.btn_start_logger.setText("Start logging")
-            self.set_status("Ready.")            
+            if current_text == "Stop reading":
+                self.btn_start_logger.setText("Restart reading")
+            else:
+                self.btn_start_logger.setText("Restart logging")
+                self.actionRestart.setEnabled(True)
+            self.actionStop.setEnabled(False)
+            self.actionStart.setEnabled(True)
+            self.set_status("Ready.")    
             self.loader.stop()
             self.loader = None
-            self.show_filter_list()
+            self.update_columns_list()
+
+    def open_repl(self):
+        if self.repl.isVisible():
+            self.repl.hide()
+        else:
+            self.repl.show()
+
+    ## Need to move to its own class similar to DataFrameWidget
+    def show_packet(self, row, column):
+        self.tableview.selectRow(row)
+        data = self.data_provider.alldata.iloc[row]['data']
+        data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))
+        self.data_inspector.setText(data)
+        self.packet_inspector.clear()
+        # extract the packet from the packetlist
+        layer = self.data_provider.packetlist[row]
+        while layer:
+            layer_item = QTreeWidgetItem([layer.summary()])
+            self.packet_inspector.addTopLevelItem(layer_item)
+            # add all the packet fields
+            for field_name, field_val in layer.fields.items():
+                field_item = QTreeWidgetItem([f"{field_name}: {field_val}"])
+                layer_item.addChild(field_item)
+
+            layer = layer.payload if layer.payload else None
+
+#END OF CLASS MainWindow
+
 
 def openMainWindow(argv):
     app = QApplication(argv)     
