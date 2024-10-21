@@ -20,9 +20,9 @@ def get_completion(prompt, model="gpt-3.5-turbo", temperature=0):
 #Prompt text for a dataframe expert
 def prepare_eval_prompt(data, prompt):
     prompt_internal = f"""
-    You are a Pandas DataFrame expert. You will receive a DataFrame in JSON format named 'data'. 
+    You are a Pandas DataFrame expert. You will receive a DataFrame in JSON format named 'df'.
     Your task is to create an expression to be used with eval() to answer the question enclosed in angle brackets. 
-    For example, for the question: <show all rows where 'identifier' is '310'>, provide: data[data['identifier'] == '310'].
+    For example, for the question: <show all rows where 'identifier' is '310'>, provide: df[df['identifier'] == '310'].
     """
     promptsys = f"{prompt_internal}"
     promptuser = f"{data}\n\nQuery or question: < {prompt} >"

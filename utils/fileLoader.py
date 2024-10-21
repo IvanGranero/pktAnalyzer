@@ -23,7 +23,7 @@ class FileLoader(QThread):
         if file_extension == 'pcap' or file_extension=='pcapng':
             with PcapReader(self.file_path) as pcap_reader:
                 notEOF = True
-                while notEOF:
+                while notEOF and self._is_running:
                     try:
                         packets = [pcap_reader.read_packet() for _ in range(self.chunk_size)]
                     except EOFError:
@@ -41,6 +41,8 @@ class FileLoader(QThread):
             pkts = []
             with CandumpReader(self.file_path) as log_reader:
                 for i, packet in enumerate(log_reader, start=1):
+                    if not self._is_running:
+                        break                     
                     df = protocol_handler(packet)
                     dfs.append(df)
                     pkts.append(packet)
@@ -50,7 +52,7 @@ class FileLoader(QThread):
                         self.data_loaded.emit(df_chunk)
                         dfs = []
                         pkts = []
-                if dfs:
+                if dfs and self._is_running:
                     df_chunk = pd.concat(dfs, ignore_index=True)
                     df_chunk = self.provider.append_data(df_chunk, pkts)
                     self.data_loaded.emit(df_chunk)

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import signal, sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
 from ui.replWidget import REPL
@@ -20,7 +21,7 @@ class MainWindow(QMainWindow):
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
         self.btn_run_filter.clicked.connect(self.run_filter)
-        self.filter_list.itemPressed.connect(self.update_filters)
+        self.filter_list.itemPressed.connect(self.update_values_list)
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
         self.actionAscii.triggered.connect(self.add_ascii)
@@ -41,7 +42,7 @@ class MainWindow(QMainWindow):
                 "QLabel { color : red; background-color: transparent; }")
         elif (warning_or_success == 'success'):
             self.display_status.setStyleSheet(
-                "QLabel { color : lightgreen; background-color: transparent; }")        
+                "QLabel { color : lightgreen; background-color: transparent; }")   
 
     def open_file(self):
         filepath, dummy = QFileDialog.getOpenFileName(self, 'Open File')
@@ -90,15 +91,23 @@ class MainWindow(QMainWindow):
 
     def update_columns_list(self):
         list_columns = self.data_provider.alldata.columns
-        self.filter_list.clear() 
+        self.filter_list.clear()
+        self.filter_view.clear()
         for word in list_columns:
             list_item = QListWidgetItem(str(word), self.filter_list)
 
-    def update_filters(self):
+    def query_data(self, filter_argument):
+        if self.repl.isVisible():
+            self.repl.input.setText(filter_argument)
+            data = self.repl.evaluate()
+        else:
+            data = self.data_provider.query_filter(filter_argument)
+        return data
+
+    def update_values_list(self):
         column_name = self.filter_list.currentItem().text()
-        #list = self.data_provider.query_filter("sorted(data['"+column_name+"'].unique())")
-        self.repl.input.setText("sorted(data['"+column_name+"'].unique())")
-        list = self.repl.evaluate()
+        filter_argument = "sorted(df['"+column_name+"'].unique())"
+        list = self.query_data(filter_argument)
         self.filter_view.clear()
         for word in list:
             list_item = QListWidgetItem(str(word), self.filter_view)
@@ -110,7 +119,7 @@ class MainWindow(QMainWindow):
         if column_type == 'str' or column_type == 'string':
             argument = '"' + argument + '"'
         #filter_argument = column_name +' == ' + argument
-        filter_argument = "data[data['"+ column_name + "'] == "+argument+"]"
+        filter_argument = "df[df['"+ column_name + "'] == "+argument+"]"
         self.inline_search.setText(filter_argument)
         self.run_filter()
 
@@ -123,16 +132,10 @@ class MainWindow(QMainWindow):
                 if self.ai_checkBox.isChecked():
                     prompt = filter_argument
                     data = self.data_provider.df_toJSON()
-                    print (data)
-                    prompt = utils.aiPrompt.prepare_prompt(data, prompt)
-                    filter_argument = utils.aiPrompt.get_completion (prompt)                   
-                    self.set_status(filter_argument)
+                    prompt = utils.aiPrompt.prepare_eval_prompt(data, prompt)
+                    filter_argument = utils.aiPrompt.get_completion (prompt)
 
-                if self.repl.isVisible():
-                    self.repl.input.setText(filter_argument)
-                    data = self.repl.evaluate()
-                else:
-                    data = self.data_provider.query_filter(filter_argument)       
+                data = self.query_data(filter_argument)
                 self.tableview.clear_table()
                 self.tableview.append_data(data)
                 self.set_status('Ready.')
@@ -163,6 +166,8 @@ class MainWindow(QMainWindow):
             self.loader.start()
             self.set_status("Logging...") 
         else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
+            self.loader.stop()
+            self.loader = None            
             if current_text == "Stop reading":
                 self.btn_start_logger.setText("Restart reading")
             else:
@@ -170,9 +175,7 @@ class MainWindow(QMainWindow):
                 self.actionRestart.setEnabled(True)
             self.actionStop.setEnabled(False)
             self.actionStart.setEnabled(True)
-            self.set_status("Ready.")    
-            self.loader.stop()
-            self.loader = None
+            self.set_status("Ready.")
             self.update_columns_list()
 
     def open_repl(self):
@@ -184,6 +187,9 @@ class MainWindow(QMainWindow):
     ## Need to move to its own class similar to DataFrameWidget
     def show_packet(self, row, column):
         self.tableview.selectRow(row)
+        # obtains the index number
+        row = self.tableview.no_column[row]
+        ## Add a current view local list with only the column no.
         data = self.data_provider.alldata.iloc[row]['data']
         data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))
         self.data_inspector.setText(data)
@@ -198,6 +204,7 @@ class MainWindow(QMainWindow):
                 field_item = QTreeWidgetItem([f"{field_name}: {field_val}"])
                 layer_item.addChild(field_item)
 
+            layer_item.setExpanded(True)
             layer = layer.payload if layer.payload else None
 
 #END OF CLASS MainWindow

@@ -26,7 +26,7 @@ class REPL(QWidget):
         code = self.input.text()
         self.input.clear()
         try:
-            result = eval(code, {'data': self.provider.alldata})
+            result = eval(code, {'df': self.provider.alldata}) # should we add packets to the list?
             self.output.append(f">>> {code}\n{result}")
             return result
         except Exception as e:
