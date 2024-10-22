@@ -1,6 +1,6 @@
-# pktLogger
+# pktAnalyzer
 
-The pktLogger repository by IvanGranero is a powerful tool for logging and analyzing CAN bus and Ethernet data. It supports various file formats, provides real-time analysis capabilities, and leverages AI for advanced data analysis.
+The pkAnalyzer repository by IvanGranero is a powerful tool for logging and analyzing CAN bus and Ethernet data. It supports various file formats, provides real-time analysis capabilities, and leverages AI for advanced data analysis.
 
 ## Table of Contents
 - [Features](#features)
@@ -30,8 +30,8 @@ The pktLogger repository by IvanGranero is a powerful tool for logging and analy
 
 Clone the repository:
 ```bash
-git clone https://github.com/IvanGranero/pktLogger.git
-cd pktLogger
+git clone https://github.com/IvanGranero/pktAnalyzer.git
+cd pktAnalyzer
 ```
 Install the required libraries:
 ```bash
@@ -41,7 +41,7 @@ pip install -r requirements.txt
 ### Usage
 Run the main logging script:
 ```bash
-python pktLogger.py
+python pktAnalyzer.py
 ```
 
 ### File Formats Supported
