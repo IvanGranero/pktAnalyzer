@@ -87,7 +87,7 @@
        <widget class="QTreeWidget" name="packet_inspector">
         <column>
          <property name="text">
-          <string notr="true"> </string>
+          <string notr="true"/>
          </property>
         </column>
        </widget>
@@ -180,12 +180,12 @@
   </action>
   <action name="actionAscii">
    <property name="text">
-    <string>Ascii Column</string>
+    <string>Find Strings</string>
    </property>
   </action>
   <action name="actionbase64">
    <property name="text">
-    <string>base64 Column</string>
+    <string>Base64 Find and Decode</string>
    </property>
   </action>
   <action name="actionImport_DBC">

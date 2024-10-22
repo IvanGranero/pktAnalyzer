@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self.filter_list.itemPressed.connect(self.update_values_list)
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
-        self.actionAscii.triggered.connect(self.add_ascii)
+        self.actionAscii.triggered.connect(self.find_strings)
         self.actionGraph.triggered.connect(self.add_plot)
         self.actionStart.triggered.connect(self.start_logger)
         self.actionOpen_REPL.triggered.connect(self.open_repl)
@@ -56,13 +56,13 @@ class MainWindow(QMainWindow):
             self.loader.finished.connect(self.file_loaded)
             self.loader.start()
 
-    def add_ascii(self):
+    def find_strings(self):
         selected_items = self.tableview.selectedItems()
         if selected_items:
             column_index = self.tableview.currentColumn()
             column_name = self.tableview.horizontalHeaderItem(column_index).text()
             self.set_status('Busy... Please wait!')
-            self.data_provider.add_ascii_column(column_name)
+            self.data_provider.add_strings_column(column_name) #add min_length as argument
             self.update_columns_list()
             self.set_status('Ready.')
         else:
@@ -159,6 +159,7 @@ class MainWindow(QMainWindow):
             self.btn_start_logger.setText("Stop logging")
             self.actionStart.setEnabled(False)
             self.actionRestart.setEnabled(False)
+            self.actionStop.setEnabled(True)            
             # CHange to read the interface from the options settings, give it as a parameter to PacketLoader
             iface = self.network_list.currentItem().text()
             self.loader = PacketLoader(self.data_provider, iface, chunk_size=1)
@@ -191,8 +192,9 @@ class MainWindow(QMainWindow):
         row = self.tableview.no_column[row]
         ## Add a current view local list with only the column no.
         data = self.data_provider.alldata.iloc[row]['data']
+        dataascii =  bytes.fromhex(data).decode('latin1')
         data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))
-        self.data_inspector.setText(data)
+        self.data_inspector.setText(data + "\n" +  dataascii)
         self.packet_inspector.clear()
         # extract the packet from the packetlist
         layer = self.data_provider.packetlist[row]
@@ -206,9 +208,7 @@ class MainWindow(QMainWindow):
 
             layer_item.setExpanded(True)
             layer = layer.payload if layer.payload else None
-
 #END OF CLASS MainWindow
-
 
 def openMainWindow(argv):
     app = QApplication(argv)     

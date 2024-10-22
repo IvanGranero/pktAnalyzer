@@ -1,4 +1,5 @@
 import pandas as pd
+from re import compile
 
 class DataFrameProvider:
     def __init__(self):
@@ -67,12 +68,50 @@ class DataFrameProvider:
 
     # maybe change them to another python file to add all the analysis decoders such as base64
 
-    def add_ascii_column(self, column_source):
-        self.alldata['dataascii'] = self.alldata['data'].apply(self.to_ascii)
-        self.alldata['dataascii'] = self.alldata['dataascii'].astype(str)
-
+    def add_strings_column(self, column_source):
+        self.alldata['strings'] = self.alldata['dataprint'].apply(self.find_strings)
+ 
     def to_ascii(self, datahex):
         return ''.join(
             chr(int(datahex[i:i + 2], 16)) if 32 <= int(datahex[i:i + 2], 16) <= 126 else '.'
             for i in range(0, len(datahex), 2)
         )
+
+    def find_strings(self, data, min_length=4):
+        # Compile a regex pattern to match sequences of printable ASCII characters
+        pattern = compile('[\x20-\x7E]{%d,}' % min_length)
+        # Find all matches of the pattern in the data
+        strings = pattern.findall(data)
+        # Decode the byte sequences to strings
+        print (strings)
+        return strings
+
+    def add_base64_column(self, column_source):
+        self.alldata['base64decoded'] = self.alldata['data'].apply(self.find_and_decode_base64_from_hex)
+        self.alldata['base64decoded'] = self.alldata['datab64'].astype(str)
+
+    def find_and_decode_base64_from_hex(hex_string):
+        # Convert hex string to bytes
+        raw_data = bytes.fromhex(hex_string)
+        
+        # Regular expression to match base64 encoded strings
+        base64_pattern = compile(r'(?<![A-Za-z0-9+/=])([A-Za-z0-9+/]{4})*'
+                                    r'([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?(?![A-Za-z0-9+/=])')
+        
+        # Decode the bytes to string to apply regex
+        raw_data_str = raw_data.decode('latin1')  # Using 'latin1' to avoid decoding errors
+        # Find all base64 strings in the raw data string
+        base64_strings = base64_pattern.findall(raw_data_str)
+        decoded_strings = []
+
+        for base64_string in base64_strings:
+            # Base64 string tuple, get the full match
+            full_base64 = ''.join(base64_string)
+            try:
+                # Decode the base64 string
+                decoded_data = base64.b64decode(full_base64).decode('utf-8', errors='replace')
+                decoded_strings.append(decoded_data)
+            except Exception as e:
+                print(f"Could not decode: {full_base64}, Error: {e}")
+
+        return decoded_strings

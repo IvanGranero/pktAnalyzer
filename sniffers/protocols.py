@@ -23,7 +23,9 @@ def protocol_handler(packet):
         'time': float(packet.time),
         'length': len(packet),
         'info': packet.summary(),
-        'data': getattr(packet, 'data', bytes(packet)).hex()  # Combine data extraction
+        'data': getattr(packet, 'data', bytes(packet)).hex(),  # Combine data extraction
+        #'dataascii': getattr(packet, 'data', bytes(packet)).decode('latin1', errors='replace')
+        'dataprint': getattr(packet, 'data', bytes(packet)).decode('ascii', errors='replace').replace('\ufffd', '')
     }
 
     # Extracts all the fields from packet
