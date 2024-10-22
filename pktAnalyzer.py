@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import signal, sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
-from ui.replWidget import REPL
+from ui.dialogsWidgets import REPL, OptionsWindow
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
 from utils.dataframeProvider import DataFrameProvider
@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.w = None
         loadUi("ui/mainWindow.ui", self)
+        self.options_window = None  # Initialize OptionsWindow
         for word in ['eth', 'can']:
             list_item = QListWidgetItem(str(word), self.network_list)
         self.tableview.cellClicked.connect(self.show_packet)
@@ -24,6 +24,7 @@ class MainWindow(QMainWindow):
         self.filter_list.itemPressed.connect(self.update_values_list)
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
+        self.actionOptions.triggered.connect(self.open_options_window)
         self.actionAscii.triggered.connect(self.find_strings)
         self.actionGraph.triggered.connect(self.add_plot)
         self.actionStart.triggered.connect(self.start_logger)
@@ -31,6 +32,12 @@ class MainWindow(QMainWindow):
         self.data_provider = DataFrameProvider()
         self.repl = REPL(self.data_provider)
 
+    def open_options_window(self):
+        if self.options_window is None:
+            self.options_window = OptionsWindow()
+        self.options_window.exec_() # Open as a modal dialog
+
+    # Close all windows when the main window is closed
     def closeEvent(self, event):
         self.repl.close()
         event.accept()
@@ -50,7 +57,7 @@ class MainWindow(QMainWindow):
             self.set_status("Reading file...")
             self.data_provider.clear_data()
             self.tableview.clear_table()
-            self.btn_start_logger.setText("Stop reading")            
+            self.btn_start_logger.setText("Stop reading")
             self.loader = FileLoader(self.data_provider, filepath, chunk_size=100)
             self.loader.data_loaded.connect(self.tableview.append_data)
             self.loader.finished.connect(self.file_loaded)
@@ -168,7 +175,7 @@ class MainWindow(QMainWindow):
             self.set_status("Logging...") 
         else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
             self.loader.stop()
-            self.loader = None            
+            self.loader = None
             if current_text == "Stop reading":
                 self.btn_start_logger.setText("Restart reading")
             else:
