@@ -34,7 +34,7 @@ class PacketLoader(QThread):
                 sniff(prn=self.packet_handler, store=False, stop_filter=self.stop_sniffing, timeout=self.timeout, opened_socket=self.sock)
         else:
             while self.running:
-                sniff(prn=self.packet_handler, store=False, stop_filter=self.stop_sniffing, timeout=self.timeout)
+                sniff(iface=self.iface, prn=self.packet_handler, store=False, stop_filter=self.stop_sniffing, timeout=self.timeout)
 
     def packet_handler(self, packet):
         self.packet_list.append(packet)

@@ -20,6 +20,7 @@ class MainWindow(QMainWindow):
         self.plot_window = None # Initialize PlotWindow
         for word in ['eth', 'can']:
             list_item = QListWidgetItem(str(word), self.network_list)
+        self.selected_interface = None
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
         self.btn_run_filter.clicked.connect(self.run_filter)
@@ -41,8 +42,12 @@ class MainWindow(QMainWindow):
                         
     def open_options_window(self):
         if self.options_window is None:
-            self.options_window = OptionsWindow()
-        self.options_window.exec_() # Open as a modal dialog
+            self.options_window = OptionsWindow()        
+        if self.options_window.exec_(): # QDialog Accepted
+            selected = self.options_window.interface_list.selectedItems()
+            if selected:
+                index = self.options_window.interface_list.indexOfTopLevelItem(selected[0])
+                self.selected_interface = self.options_window.available_interfaces[index]
 
     # Close all windows when the main window is closed
     def closeEvent(self, event):
@@ -178,8 +183,8 @@ class MainWindow(QMainWindow):
             self.actionRestart.setEnabled(False)
             self.actionStop.setEnabled(True)            
             # CHange to read the interface from the options settings, give it as a parameter to PacketLoader
-            iface = self.network_list.currentItem().text()
-            self.loader = PacketLoader(self.data_provider, iface, chunk_size=1)
+            #iface = self.network_list.currentItem().text()
+            self.loader = PacketLoader(self.data_provider, self.selected_interface, chunk_size=1)
             self.loader.packets_loaded.connect(self.df_model.set_dataframe)
             self.loader.start()
             self.set_status("Logging...") 

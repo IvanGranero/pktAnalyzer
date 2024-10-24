@@ -1,6 +1,4 @@
 from scapy.layers.can import CANFD, CAN
-import dask.bag as db
-import sys
 
 def read_packet(line):
     """Read a packet from the specified file.
@@ -57,24 +55,15 @@ def read_packet(line):
     if t is not None:
         pkt.time = t
 
-    return pkt
+    packet_data = {
+        'time': float(pkt.time),
+        'info': pkt.summary(),
+        'data': bytes(pkt).hex(),
+        'dataprint': bytes(pkt).decode('ascii', errors='replace').replace('\ufffd', ''),
+        'identifier': pkt.identifier,
+        'length': pkt.length,
+        'protocol': pkt.name
+    }
 
+    return packet_data
 
-if __name__ == "__main__":
-    if(len(sys.argv) < 2):
-        print("Usage: python candumpreader.py <input_file>")
-        sys.exit(1)
-    
-    file = sys.argv[1]
-
-    # Read the text file in parallel
-    bag = db.read_text(file)
-
-    # Example processing: Convert each line to uppercase
-    processed_bag = bag.map(lambda x: read_packet(x))
-
-    # Compute and process the results in chunks
-    for delayed in processed_bag.to_delayed():
-        chunk = delayed.compute()
-        # Handle the chunk (result) here
-        print(chunk)        

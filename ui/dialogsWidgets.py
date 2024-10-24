@@ -3,7 +3,7 @@ from PyQt5.uic import loadUi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from scapy.interfaces import get_if_list
+from scapy.interfaces import get_if_list, get_working_ifaces
 
 class REPL(QWidget):
     def __init__(self, provider):
@@ -46,9 +46,12 @@ class OptionsWindow(QDialog):
         self.get_network_interfaces()
 
     def get_network_interfaces(self):
-        interfaces = get_if_list()
-        for interface in interfaces:
-            item = QTreeWidgetItem([interface])
+        #self.available_interfaces = get_if_list()
+        interfaces = get_working_ifaces()
+        self.available_interfaces = []
+        for iface in interfaces:
+            self.available_interfaces.append(iface.name)
+            item = QTreeWidgetItem([iface.name + " " + iface.mac])
             self.interface_list.addTopLevelItem(item)
 
 #END OF CLASS OptionsWindow

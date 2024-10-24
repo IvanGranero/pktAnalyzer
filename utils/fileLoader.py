@@ -1,8 +1,11 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 import pandas as pd
 from sniffers.protocols import protocol_handler
+from sniffers.candumpreader import read_packet
 from scapy.all import PcapReader
 from scapy.layers.can import CandumpReader
+from dask import bag, compute
+from os import cpu_count
 
 class FileLoader(QThread):
     data_loaded = pyqtSignal()
@@ -43,25 +46,15 @@ class FileLoader(QThread):
                     self.data_loaded.emit()
 
         elif file_extension == 'log':
-            dfs = []
-            pkts = []
-            with CandumpReader(self.file_path) as log_reader:
-                for i, packet in enumerate(log_reader, start=1):
-                    if not self._is_running:
-                        break                     
-                    df = protocol_handler(packet)
-                    dfs.append(df)
-                    pkts.append(packet)
-                    if i % self.chunk_size == 0:
-                        df_chunk = pd.concat(dfs, ignore_index=True)
-                        self.provider.append_data(df_chunk)
-                        self.data_loaded.emit()
-                        dfs = []
-                        pkts = []
-                if dfs and self._is_running:
-                    df_chunk = pd.concat(dfs, ignore_index=True)
-                    self.provider.append_data(df_chunk)
-                    self.data_loaded.emit()
+            processed_bag = bag.read_text(self.file_path)
+            processed_bag = processed_bag.map(lambda x: pd.DataFrame([read_packet(x)]))
+            num_cores = cpu_count()
+            processed_bag = processed_bag.repartition(npartitions=num_cores)
+            results = compute(*processed_bag.to_delayed())
+            for chunk in results:
+                df_chunk = pd.concat(chunk, ignore_index=True)
+                self.provider.append_data(df_chunk)
+                self.data_loaded.emit()
 
         elif file_extension == 'csv':
             for chunk in pd.read_csv(self.file_path, chunksize=self.chunk_size):
