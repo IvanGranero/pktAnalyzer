@@ -21,7 +21,7 @@
     },
     "CANFD": {
         "identifier": "identifier",
-        "length": "length"
+        "length": "length"    
     },
     "J1939": {
         "pgn": "pgn",

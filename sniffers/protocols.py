@@ -3,6 +3,7 @@ import pandas as pd
 from json import load as loadjson
 from scapy.all import load_contrib, load_layer
 #from scapy.contrib.isotp import ISOTP
+from scapy.layers.l2 import Ether, ARP
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse, Raw
 from scapy.layers.can import CANFD, CAN
 
@@ -23,9 +24,8 @@ def protocol_handler(packet):
         'time': float(packet.time),
         'length': len(packet),
         'info': packet.summary(),
-        'data': getattr(packet, 'data', bytes(packet)).hex(),  # Combine data extraction
-        #'dataascii': getattr(packet, 'data', bytes(packet)).decode('latin1', errors='replace')
-        'dataprint': getattr(packet, 'data', bytes(packet)).decode('ascii', errors='replace').replace('\ufffd', '')
+        'data': bytes(packet).hex(),
+        'dataprint': bytes(packet).decode('ascii', errors='replace').replace('\ufffd', '')
     }
 
     # Extracts all the fields from packet
@@ -46,5 +46,24 @@ def protocol_handler(packet):
     packet_data['protocol'] = layer_name
 
     return pd.DataFrame([packet_data])
+
+def hex_to_packet(hex_string, proto):
+    packet_bytes = bytes.fromhex(hex_string)
+    if proto == 'CAN':
+        return CAN(packet_bytes)
+    elif proto == 'CANFD':
+        return CANFD(packet_bytes)
+    # List of layer 2 protocols
+    #layers = [Ether, ARP, CAN, CANFD] # CAN and CANFD are not being recognized
+    layers = [Ether, ARP]
+    for layer in layers:
+        try:
+            packet = layer(packet_bytes)
+            if packet.haslayer(layer):
+                return packet
+        except:
+            pass
+    # If no known primary layer matches, return raw bytes
+    return Raw(packet_bytes)
 
 

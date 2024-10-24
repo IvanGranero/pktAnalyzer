@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 import signal, sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
-from ui.dialogsWidgets import REPL, OptionsWindow
+from ui.dialogsWidgets import REPL, OptionsWindow, PlotWindow
+from ui.dataframeModel import DataFrameModel
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
+from sniffers.protocols import hex_to_packet
 from utils.dataframeProvider import DataFrameProvider
 from utils.fileLoader import FileLoader
 import utils.aiPrompt
@@ -15,23 +17,28 @@ class MainWindow(QMainWindow):
         super().__init__()
         loadUi("ui/mainWindow.ui", self)
         self.options_window = None  # Initialize OptionsWindow
+        self.plot_window = None # Initialize PlotWindow
         for word in ['eth', 'can']:
             list_item = QListWidgetItem(str(word), self.network_list)
-        self.tableview.cellClicked.connect(self.show_packet)
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
         self.btn_run_filter.clicked.connect(self.run_filter)
         self.filter_list.itemPressed.connect(self.update_values_list)
         self.filter_view.itemPressed.connect(self.select_filter)
         self.actionOpen.triggered.connect(self.open_file)
+        self.actionSave.triggered.connect(self.save_file)
         self.actionOptions.triggered.connect(self.open_options_window)
         self.actionAscii.triggered.connect(self.find_strings)
-        self.actionGraph.triggered.connect(self.add_plot)
+        self.actionGraph.triggered.connect(self.open_plot_window)
         self.actionStart.triggered.connect(self.start_logger)
         self.actionOpen_REPL.triggered.connect(self.open_repl)
         self.data_provider = DataFrameProvider()
         self.repl = REPL(self.data_provider)
-
+        self.df_model = DataFrameModel(self.data_provider)
+        self.tableview.setModel(self.df_model)
+        self.tableview.verticalHeader().setVisible(False)
+        self.tableview.clicked.connect(self.show_packet)
+                        
     def open_options_window(self):
         if self.options_window is None:
             self.options_window = OptionsWindow()
@@ -49,19 +56,31 @@ class MainWindow(QMainWindow):
                 "QLabel { color : red; background-color: transparent; }")
         elif (warning_or_success == 'success'):
             self.display_status.setStyleSheet(
-                "QLabel { color : lightgreen; background-color: transparent; }")   
+                "QLabel { color : black; background-color: transparent; }")   
 
     def open_file(self):
-        filepath, dummy = QFileDialog.getOpenFileName(self, 'Open File')
+        file_dialog_filter = "Parquet files (*.parquet);;LOG Files (*.log);;PCAP files (*.pcap *.pcapng);;CSV Files (*.csv);;All Files (*)"
+        options = QFileDialog.Options()
+        filepath, _= QFileDialog.getOpenFileName(self, 'Open File', "", file_dialog_filter, options=options)
         if len(filepath) > 0:
             self.set_status("Reading file...")
             self.data_provider.clear_data()
-            self.tableview.clear_table()
+            self.df_model.set_dataframe()
             self.btn_start_logger.setText("Stop reading")
-            self.loader = FileLoader(self.data_provider, filepath, chunk_size=100)
-            self.loader.data_loaded.connect(self.tableview.append_data)
+            self.loader = FileLoader(self.data_provider, filepath, chunk_size=1000)
+            self.loader.data_loaded.connect(self.df_model.set_dataframe)
             self.loader.finished.connect(self.file_loaded)
             self.loader.start()
+
+    def save_file(self):
+        file_dialog_filter = "Parquet file (*.parquet);;LOG File (*.log);;PCAP file (*.pcap *.pcapng);;CSV File (*.csv);;All Files (*)"
+        options = QFileDialog.Options()
+        filepath, selected_filter= QFileDialog.getSaveFileName(self, 'Save File', "", file_dialog_filter, options=options)
+        #filepath = os.path.normpath(filepath)
+        if len(filepath) > 0:
+            self.set_status("Saving file...")
+            self.data_provider.save_packets(filepath, selected_filter)
+            self.set_status("File saved.", 'success')
 
     def find_strings(self):
         selected_items = self.tableview.selectedItems()
@@ -75,46 +94,38 @@ class MainWindow(QMainWindow):
         else:
             self.set_status("Select a column to convert to ASCII.")
 
-    def add_plot(self):
-        selected_items = self.tableview.selectedItems()
-        if selected_items:
-            column_index = self.tableview.currentColumn()
-            column_name = self.tableview.horizontalHeaderItem(column_index).text()
-        else:
-            self.set_status("Select a column to plot.")
-
-        plt.plot(self.data_provider.alldata[column_name])
-        plt.title(column_name)
-        plt.xlabel('index')
-        plt.ylabel(column_name)
-        plt.show()
+    def open_plot_window(self):
+        if self.plot_window is None:
+            self.plot_window = PlotWindow(self) # Pass self (MainWindow instance) as parent
+        self.plot_window.show()
 
     def file_loaded(self):
         self.btn_start_logger.setText("Start logging")
         self.actionRestart.setEnabled(True)
         self.update_columns_list()
-        self.tableview.cellClicked.emit(0, 0)
+        #self.tableview.cellClicked.emit(0, 0)
         self.set_status("Ready.")
 
     def update_columns_list(self):
-        list_columns = self.data_provider.alldata.columns
+        list_columns = self.data_provider.data.columns
         self.filter_list.clear()
         self.filter_view.clear()
         for word in list_columns:
             list_item = QListWidgetItem(str(word), self.filter_list)
 
-    def query_data(self, filter_argument):
+    def query_data(self, filter_argument, return_data=False):
         if self.repl.isVisible():
             self.repl.input.setText(filter_argument)
             data = self.repl.evaluate()
         else:
-            data = self.data_provider.query_filter(filter_argument)
-        return data
+            data = self.data_provider.query_filter(filter_argument, return_data)
+        if return_data:
+            return data
 
     def update_values_list(self):
         column_name = self.filter_list.currentItem().text()
         filter_argument = "sorted(df['"+column_name+"'].unique())"
-        list = self.query_data(filter_argument)
+        list = self.query_data(filter_argument, True)
         self.filter_view.clear()
         for word in list:
             list_item = QListWidgetItem(str(word), self.filter_view)
@@ -122,7 +133,7 @@ class MainWindow(QMainWindow):
     def select_filter(self):
         column_name = self.filter_list.currentItem().text()
         argument = self.filter_view.currentItem().text()
-        column_type = self.data_provider.alldata[column_name].dtype
+        column_type = self.data_provider.data[column_name].dtype
         if column_type == 'str' or column_type == 'string':
             argument = '"' + argument + '"'
         #filter_argument = column_name +' == ' + argument
@@ -142,9 +153,8 @@ class MainWindow(QMainWindow):
                     prompt = utils.aiPrompt.prepare_eval_prompt(data, prompt)
                     filter_argument = utils.aiPrompt.get_completion (prompt)
 
-                data = self.query_data(filter_argument)
-                self.tableview.clear_table()
-                self.tableview.append_data(data)
+                self.query_data(filter_argument)                
+                self.df_model.set_dataframe()
                 self.set_status('Ready.')
             except Exception as e:
                 print (e)
@@ -161,7 +171,7 @@ class MainWindow(QMainWindow):
         if current_text.endswith("tart logging"):
             if current_text == "Start logging":
                 self.data_provider.clear_data()
-                self.tableview.clear_table()
+                self.df_model.set_dataframe()
 
             self.btn_start_logger.setText("Stop logging")
             self.actionStart.setEnabled(False)
@@ -170,7 +180,7 @@ class MainWindow(QMainWindow):
             # CHange to read the interface from the options settings, give it as a parameter to PacketLoader
             iface = self.network_list.currentItem().text()
             self.loader = PacketLoader(self.data_provider, iface, chunk_size=1)
-            self.loader.packets_loaded.connect(self.tableview.append_data)
+            self.loader.packets_loaded.connect(self.df_model.set_dataframe)
             self.loader.start()
             self.set_status("Logging...") 
         else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
@@ -193,18 +203,19 @@ class MainWindow(QMainWindow):
             self.repl.show()
 
     ## Need to move to its own class similar to DataFrameWidget
-    def show_packet(self, row, column):
-        self.tableview.selectRow(row)
-        # obtains the index number
-        row = self.tableview.no_column[row]
-        ## Add a current view local list with only the column no.
-        data = self.data_provider.alldata.iloc[row]['data']
-        dataascii =  bytes.fromhex(data).decode('latin1')
+    def show_packet(self, index):
+        row = index.row()
+        column = index.column()
+        #self.tableview.selectRow(row)
+        data = self.data_provider.data.iloc[row]['data']
+        proto = self.data_provider.data.iloc[row]['protocol']
+        dataprint =  bytes.fromhex(data).decode('latin1')
         data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))
-        self.data_inspector.setText(data + "\n" +  dataascii)
+        self.data_inspector.setText(data + "\n" +  dataprint)
         self.packet_inspector.clear()
         # extract the packet from the packetlist
-        layer = self.data_provider.packetlist[row]
+        #layer = self.data_provider.packetlist[row]
+        layer = hex_to_packet(data, proto)
         while layer:
             layer_item = QTreeWidgetItem([layer.summary()])
             self.packet_inspector.addTopLevelItem(layer_item)

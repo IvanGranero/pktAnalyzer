@@ -3,15 +3,16 @@ from re import compile
 
 class DataFrameProvider:
     def __init__(self):
-        self.alldata = pd.DataFrame() # Dataframe to be used across clasess by sharing the same instance
-        self.packetlist = [] # List of scapy packets
+        self.alldata = pd.DataFrame() # dataframe to store all the data
+        self.data = pd.DataFrame() # dataframe to store the data to be displayed
 
     def clear_data(self):
         del self.alldata
         self.alldata = pd.DataFrame()
-        self.packetlist.clear()
+        del self.data
+        self.data = pd.DataFrame()
 
-    def append_data(self, chunk, packets=None):
+    def append_data(self, chunk):
         # Identify numeric and string columns
         numeric_cols = chunk.select_dtypes(include='number').columns
         string_cols = chunk.select_dtypes(include=['object', 'string']).columns
@@ -25,30 +26,31 @@ class DataFrameProvider:
             chunk['no'] = range(len(self.alldata), len(self.alldata) + len(chunk))
         # Moves the no column to the beginning
         chunk = chunk[['no'] + [col for col in chunk.columns if col != 'no']]
-        # Concatenate the chunk to the main dataframe
-        self.alldata = pd.concat([self.alldata, chunk], ignore_index=True)
-        # Append packets to packetlist if provided
-        if packets is not None:
-            self.packetlist.extend(packets)
-        # Return the sanitized chunk
-        return chunk
+        # Concatenate the chunk to the dataframes
+        concat_result = pd.concat([self.alldata, chunk], ignore_index=True)
+        self.alldata = concat_result
+        self.data = concat_result.copy()
 
-    def save_packets(self, file_name):
-        print ("Saving log to a file")
-        #save all buffer into file
-        #alldata.to_csv(file_name) 
-        # PARQUET GIVING ERROR for unknown values, NEED TOF IND A WAY TO SAVE IGNORING ERRORS     
-        self.alldata = self.alldata.convert_dtypes()
-        try:        
-            self.alldata.to_parquet(file_name+'.parquet.gzip', compression='gzip')
-        except Exception as e:
-            try:
-                print(e)
-                self.alldata.to_csv(file_name+'.gzip', compression='gzip')
-            except Exception as e:
-                print(e)
-                self.alldata.to_csv(file_name+'.csv', sep='\t')
-        print("Saved as bufferdump.")
+    def save_packets(self, filepath, selected_filter):
+        if selected_filter.startswith("Parquet"):
+            if not filepath.endswith(".parquet"):
+                filepath += ".parquet"
+            self.data.to_parquet(filepath)
+
+        elif selected_filter.startswith("LOG"):
+            if not filepath.endswith(".log"):
+                filepath += ".log"
+            # Need to add a function to save canlog packets
+
+        elif selected_filter.startswith("PCAP"):
+            if not (filepath.endswith(".pcap") or filepath.endswith(".pcapng")):
+                filepath += ".pcap"  # Default to .pcap if neither is specified
+            # Need to add wrpcap function to save the packets
+
+        elif selected_filter.startswith("CSV"):
+            if not filepath.endswith(".csv"):
+                filepath += ".csv"
+            self.data.to_csv(filepath, sep='\t')
 
     def df_toJSON(self):
         try:
@@ -58,10 +60,14 @@ class DataFrameProvider:
             print (e)
         return datos
 
-    def query_filter(self, filter_argument):
+    def query_filter(self, filter_argument, return_data=False):
         #return self.alldata.query(filter_argument)
         ## Need to sanitize the input to avoid code injection
-        return eval(filter_argument, {'df': self.alldata})
+        result = eval(filter_argument, {'df': self.alldata})        
+        if return_data:
+            return result
+        else:
+            self.data = result
 
     # def eval_filter(self, filter_argument):
     #     return pd.eval(filter_argument)
@@ -87,8 +93,8 @@ class DataFrameProvider:
         return strings
 
     def add_base64_column(self, column_source):
-        self.alldata['base64decoded'] = self.alldata['data'].apply(self.find_and_decode_base64_from_hex)
-        self.alldata['base64decoded'] = self.alldata['datab64'].astype(str)
+        self.alldata['base64decoded'] = self.alldata['hexbytes'].apply(self.find_and_decode_base64_from_hex)
+        self.alldata['base64decoded'] = self.alldata['base64decoded'].astype(str)
 
     def find_and_decode_base64_from_hex(hex_string):
         # Convert hex string to bytes

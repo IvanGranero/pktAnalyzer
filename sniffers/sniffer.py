@@ -11,7 +11,7 @@ from sniffers.protocols import protocol_handler
 # load_contrib('isotp')
 
 class PacketLoader(QThread):
-    packets_loaded = pyqtSignal(pd.DataFrame, bool)
+    packets_loaded = pyqtSignal()
 
     def __init__(self, provider, iface, chunk_size=1, parent=None):
         super().__init__(parent)
@@ -28,6 +28,7 @@ class PacketLoader(QThread):
             self.sock = CANSocket(channel=self.channel, bitrate=500000)
 
     def run(self):
+        self.packet_list.clear()
         if self.iface == "can":
             while self.running:
                 sniff(prn=self.packet_handler, store=False, stop_filter=self.stop_sniffing, timeout=self.timeout, opened_socket=self.sock)
@@ -39,8 +40,8 @@ class PacketLoader(QThread):
         self.packet_list.append(packet)
         if len(self.packet_list) >= self.chunk_size:
             dfs = pd.concat([protocol_handler(pkt) for pkt in self.packet_list], ignore_index=True)
-            dfs = self.provider.append_data(dfs, self.packet_list)
-            self.packets_loaded.emit(dfs, True) # Triggers table view update with live view
+            self.provider.append_data(dfs)
+            self.packets_loaded.emit() # Triggers table view update with live view
             self.packet_list.clear()  # Clear the list for the next batch
 
     def stop_sniffing(self, packet):

@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QDialog, QTreeWidgetItem
 from PyQt5.uic import loadUi
-import psutil
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+from scapy.interfaces import get_if_list
 
 class REPL(QWidget):
     def __init__(self, provider):
@@ -28,11 +31,12 @@ class REPL(QWidget):
         code = self.input.text()
         self.input.clear()
         try:
-            result = eval(code, {'df': self.provider.alldata}) # should we add packets to the list?
+            result = eval(code, {'df': self.provider.alldata})
             self.output.append(f">>> {code}\n{result}")
             return result
         except Exception as e:
-            self.output.append(f">>> {code}\nError: {e}")
+            self.output.append(f">>> {code}\nError: {e}")       
+
 #END OF CLASS REPL
 
 class OptionsWindow(QDialog):
@@ -42,17 +46,39 @@ class OptionsWindow(QDialog):
         self.get_network_interfaces()
 
     def get_network_interfaces(self):
-        interfaces = psutil.net_if_addrs()
+        interfaces = get_if_list()
         for interface in interfaces:
             item = QTreeWidgetItem([interface])
             self.interface_list.addTopLevelItem(item)
 
-        # while layer:
-        #     layer_item = QTreeWidgetItem([layer.summary()])
-        #     self.packet_inspector.addTopLevelItem(layer_item)
-        #     # add all the packet fields
-        #     for field_name, field_val in layer.fields.items():
-        #         field_item = QTreeWidgetItem([f"{field_name}: {field_val}"])
-        #         layer_item.addChild(field_item)
-
 #END OF CLASS OptionsWindow
+
+class PlotWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.mainwindow = parent
+        self.setWindowTitle("Plot Window")
+        self.setGeometry(100, 100, 800, 600)
+
+        layout = QVBoxLayout()
+        # Create a matplotlib figure and canvas
+        self.canvas = FigureCanvas(Figure(figsize=(5, 4)))
+        layout.addWidget(self.canvas)
+        
+        # Add Navigation toolbar
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        layout.addWidget(self.toolbar)
+        
+        # Plot something
+        self.plot()
+
+        self.setLayout(layout)
+
+    def plot(self):
+        ax = self.canvas.figure.add_subplot(111)
+        data = self.mainwindow.data_provider.query_filter("df[df['identifier'] == 304]['hexbytes']")
+        ax.plot(data, 'r-')
+        ax.set_title('Sample Plot')
+        self.canvas.draw() 
+
+#END OF CLASS PlotWindow

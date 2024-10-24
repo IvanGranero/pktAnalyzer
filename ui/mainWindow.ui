@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>pktLogger</string>
+   <string>pktAnalyzer</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -51,7 +51,7 @@
        <number>6</number>
       </property>
       <item>
-       <widget class="DataFrameWidget" name="tableview"/>
+       <widget class="QTableView" name="tableview"/>
       </item>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,2,80">
@@ -245,13 +245,6 @@
    </property>
   </action>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>DataFrameWidget</class>
-   <extends>QTableWidget</extends>
-   <header>ui.DataFrameWidget</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>
