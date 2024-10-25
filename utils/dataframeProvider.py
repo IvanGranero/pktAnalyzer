@@ -74,8 +74,8 @@ class DataFrameProvider:
 
     # maybe change them to another python file to add all the analysis decoders such as base64
 
-    def add_strings_column(self, column_source):
-        self.alldata['strings'] = self.alldata['dataprint'].apply(self.find_strings)
+    def add_strings_column(self, column_index):
+        self.data['strings'] = self.data.iloc[:, column_index].apply(self.find_strings)
  
     def to_ascii(self, datahex):
         return ''.join(
@@ -89,7 +89,6 @@ class DataFrameProvider:
         # Find all matches of the pattern in the data
         strings = pattern.findall(data)
         # Decode the byte sequences to strings
-        print (strings)
         return strings
 
     def add_base64_column(self, column_source):

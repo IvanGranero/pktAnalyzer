@@ -55,15 +55,5 @@ def read_packet(line):
     if t is not None:
         pkt.time = t
 
-    packet_data = {
-        'time': float(pkt.time),
-        'info': pkt.summary(),
-        'data': bytes(pkt).hex(),
-        'dataprint': bytes(pkt).decode('ascii', errors='replace').replace('\ufffd', ''),
-        'identifier': pkt.identifier,
-        'length': pkt.length,
-        'protocol': pkt.name
-    }
-
-    return packet_data
+    return pkt
 

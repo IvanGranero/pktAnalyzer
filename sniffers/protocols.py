@@ -1,5 +1,5 @@
+from pandas import DataFrame
 from struct import pack
-import pandas as pd
 from json import load as loadjson
 from scapy.all import load_contrib, load_layer
 #from scapy.contrib.isotp import ISOTP
@@ -39,13 +39,13 @@ def protocol_handler(packet):
                     pass
         else:
             pass
-            print(f"Unknown layer: {layer_name}")
+            #print(f"Unknown layer: {layer_name}")
 
         layer = layer.payload if layer.payload else None
 
     packet_data['protocol'] = layer_name
 
-    return pd.DataFrame([packet_data])
+    return DataFrame([packet_data])
 
 def hex_to_packet(hex_string, proto):
     packet_bytes = bytes.fromhex(hex_string)

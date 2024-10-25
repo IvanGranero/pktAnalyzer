@@ -1,20 +1,4 @@
 {  
-    "Ether": {
-        "source": "src",
-        "destination": "dst",
-        "protocol": "type"
-    },
-    "IP": {
-        "source": "src",
-        "destination": "dst",
-        "protocol": "proto"
-    },
-    "TCP": {
-        "port": "sport"
-    },
-    "UDP": {
-        "port": "sport"
-    },
     "CAN": {
         "identifier": "identifier",
         "length": "length"
@@ -39,5 +23,21 @@
     "UDS": {
         "source": "source",
         "destination": "destination"
+    },
+    "Ether": {
+        "source": "src",
+        "destination": "dst",
+        "protocol": "type"
+    },
+    "IP": {
+        "source": "src",
+        "destination": "dst",
+        "protocol": "proto"
+    },
+    "TCP": {
+        "port": "sport"
+    },
+    "UDP": {
+        "port": "sport"
     }
 }

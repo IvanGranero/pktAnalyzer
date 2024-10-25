@@ -88,16 +88,18 @@ class MainWindow(QMainWindow):
             self.set_status("File saved.", 'success')
 
     def find_strings(self):
-        selected_items = self.tableview.selectedItems()
-        if selected_items:
-            column_index = self.tableview.currentColumn()
-            column_name = self.tableview.horizontalHeaderItem(column_index).text()
+        selected_indexes = self.tableview.selectedIndexes()
+        if selected_indexes:
+            selected_index = selected_indexes[0]
+            column_index = selected_index.column()                 
             self.set_status('Busy... Please wait!')
-            self.data_provider.add_strings_column(column_name) #add min_length as argument
+            self.data_provider.add_strings_column(column_index) #add min_length as argument
+            self.df_model.set_dataframe()
             self.update_columns_list()
+            #self.update_columns_list()
             self.set_status('Ready.')
         else:
-            self.set_status("Select a column to convert to ASCII.")
+            self.set_status("Select a column.")
 
     def open_plot_window(self):
         if self.plot_window is None:

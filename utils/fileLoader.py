@@ -47,8 +47,8 @@ class FileLoader(QThread):
 
         elif file_extension == 'log':
             processed_bag = bag.read_text(self.file_path)
-            processed_bag = processed_bag.map(lambda x: pd.DataFrame([read_packet(x)]))
-            num_cores = cpu_count()
+            processed_bag = processed_bag.map(lambda x: protocol_handler(read_packet(x)))
+            num_cores = int(cpu_count() / 2)
             processed_bag = processed_bag.repartition(npartitions=num_cores)
             results = compute(*processed_bag.to_delayed())
             for chunk in results:
