@@ -1,43 +1,65 @@
 {  
     "CAN": {
-        "identifier": "identifier",
-        "length": "length"
+        "fields": [
+            { "name": "identifier", "convert_from_to": "int_to_hexstring" },
+            { "name": "length" },
+            { "name": "data", "convert_from_to": "bytes_to_hexstring" }
+        ]
     },
     "CANFD": {
-        "identifier": "identifier",
-        "length": "length"    
+        "fields": [
+            { "name": "identifier", "convert_from_to": "int_to_hexstring" },
+            { "name": "length" },
+            { "name": "data", "convert_from_to": "bytes_to_hexstring" }
+        ]
     },
     "J1939": {
-        "pgn": "pgn",
-        "priority": "priority",
-        "source": "source",
-        "destination": "destination"
+        "fields": [
+            { "name": "pgn" },
+            { "name": "priority" },
+            { "name": "source" },
+            { "name": "destination" }
+        ]
     },
     "ISO-TP": {
-        "source": "source",
-        "destination": "destination"
+        "fields": [
+            { "name": "source" },
+            { "name": "destination" }
+        ]
     },
     "DoIP": {
-        "data": "data"
+        "fields": [
+            { "name": "data" }
+        ]
     },
     "UDS": {
-        "source": "source",
-        "destination": "destination"
+        "fields": [
+            { "name": "source" },
+            { "name": "destination" }
+        ]
     },
     "Ether": {
-        "source": "src",
-        "destination": "dst",
-        "protocol": "type"
+        "fields": [
+            { "name": "source" },
+            { "name": "destination" },
+            { "name": "protocol" }
+        ]
     },
     "IP": {
-        "source": "src",
-        "destination": "dst",
-        "protocol": "proto"
+        "fields": [
+            { "name": "source" },
+            { "name": "destination" },
+            { "name": "protocol" }
+        ]
     },
     "TCP": {
-        "port": "sport"
+        "fields": [
+            { "name": "port" }
+        ]
     },
     "UDP": {
-        "port": "sport"
+        "fields": [
+            { "name": "port" }
+        ]
     }
 }

@@ -1,10 +1,17 @@
 from scapy.layers.can import CANFD, CAN
+from sniffers.protocols import protocol_handler
+
+def read_dfpackets(lines):
+    pkts = []
+    for line in lines:
+        try:
+            pkt = protocol_handler(read_packet(line))
+            pkts.append(pkt)
+        except:
+            pass
+    return pkts
 
 def read_packet(line):
-    """Read a packet from the specified file.
-    This function will raise EOFError when no more packets are available.
-    :return: A single packet read from the file or None if filters apply
-    """
     # Read and strip leading whitespaces
     line = line.lstrip()
 
@@ -42,7 +49,8 @@ def read_packet(line):
     if len(data) <= 8 and fd_flags is None:
         pkt = CAN(identifier=int(idn, 16), data=bytes.fromhex(data))
     else:
-        pkt = CANFD(identifier=int(idn, 16), fd_flags=fd_flags, data=bytes.fromhex(data))
+        pkt = CANFD(identifier=int(idn, 16), data=bytes.fromhex(data))
+        #pkt = CANFD(identifier=int(idn, 16), fd_flags=fd_flags, data=bytes.fromhex(data))  # it's failing for unrecognized flags
 
     # Set packet length
     pkt.length = int(le[1:]) if le is not None else len(pkt.data)
@@ -56,4 +64,3 @@ def read_packet(line):
         pkt.time = t
 
     return pkt
-

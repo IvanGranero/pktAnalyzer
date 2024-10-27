@@ -18,8 +18,6 @@ class MainWindow(QMainWindow):
         loadUi("ui/mainWindow.ui", self)
         self.options_window = None  # Initialize OptionsWindow
         self.plot_window = None # Initialize PlotWindow
-        for word in ['eth', 'can']:
-            list_item = QListWidgetItem(str(word), self.network_list)
         self.selected_interface = None
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
@@ -38,16 +36,17 @@ class MainWindow(QMainWindow):
         self.df_model = DataFrameModel(self.data_provider)
         self.tableview.setModel(self.df_model)
         self.tableview.verticalHeader().setVisible(False)
-        self.tableview.clicked.connect(self.show_packet)
+        #self.tableview.clicked.connect(self.show_packet)
+        self.tableview.selectionModel().currentChanged.connect(self.show_packet)
                         
     def open_options_window(self):
         if self.options_window is None:
             self.options_window = OptionsWindow()        
         if self.options_window.exec_(): # QDialog Accepted
-            selected = self.options_window.interface_list.selectedItems()
-            if selected:
-                index = self.options_window.interface_list.indexOfTopLevelItem(selected[0])
-                self.selected_interface = self.options_window.available_interfaces[index]
+            selected_items = self.options_window.interface_list.selectedItems()
+            selected_texts = [item.text(0) for item in selected_items]
+            if selected_texts:
+                self.selected_interface = selected_texts
 
     # Close all windows when the main window is closed
     def closeEvent(self, event):
@@ -123,7 +122,7 @@ class MainWindow(QMainWindow):
     def query_data(self, filter_argument, return_data=False):
         if self.repl.isVisible():
             self.repl.input.setText(filter_argument)
-            data = self.repl.evaluate()
+            data = self.repl.evaluate(return_data)
         else:
             data = self.data_provider.query_filter(filter_argument, return_data)
         if return_data:
@@ -184,8 +183,6 @@ class MainWindow(QMainWindow):
             self.actionStart.setEnabled(False)
             self.actionRestart.setEnabled(False)
             self.actionStop.setEnabled(True)            
-            # CHange to read the interface from the options settings, give it as a parameter to PacketLoader
-            #iface = self.network_list.currentItem().text()
             self.loader = PacketLoader(self.data_provider, self.selected_interface, chunk_size=1)
             self.loader.packets_loaded.connect(self.df_model.set_dataframe)
             self.loader.start()
@@ -210,11 +207,11 @@ class MainWindow(QMainWindow):
             self.repl.show()
 
     ## Need to move to its own class similar to DataFrameWidget
-    def show_packet(self, index):
-        row = index.row()
-        column = index.column()
+    def show_packet(self, current, previous):
+        row = current.row()
+        column = current.column()
         #self.tableview.selectRow(row)
-        data = self.data_provider.data.iloc[row]['data']
+        data = self.data_provider.data.iloc[row]['dataframe']
         proto = self.data_provider.data.iloc[row]['protocol']
         dataprint =  bytes.fromhex(data).decode('latin1')
         data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))

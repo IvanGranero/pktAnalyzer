@@ -54,16 +54,13 @@
        <widget class="QTableView" name="tableview"/>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,2,80">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="2,2,80">
         <item>
          <widget class="QPushButton" name="btn_start_logger">
           <property name="text">
            <string>Start logging</string>
           </property>
          </widget>
-        </item>
-        <item>
-         <widget class="QListWidget" name="network_list"/>
         </item>
         <item>
          <widget class="QListWidget" name="filter_list"/>

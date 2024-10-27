@@ -1,17 +1,16 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 import pandas as pd
 from sniffers.protocols import protocol_handler
-from sniffers.candumpreader import read_packet
+from sniffers.candumpreader import read_dfpackets
 from scapy.all import PcapReader
 from scapy.layers.can import CandumpReader
-from dask import bag, compute
-from os import cpu_count
+import multiprocessing as mp
 
 class FileLoader(QThread):
     data_loaded = pyqtSignal()
     finished = pyqtSignal()
 
-    def __init__(self, provider, file_path, chunk_size=100, parent=None):
+    def __init__(self, provider, file_path, chunk_size=1000, parent=None):
         super().__init__(parent)
         self.file_path = file_path
         self.chunk_size = chunk_size
@@ -46,15 +45,17 @@ class FileLoader(QThread):
                     self.data_loaded.emit()
 
         elif file_extension == 'log':
-            processed_bag = bag.read_text(self.file_path)
-            processed_bag = processed_bag.map(lambda x: protocol_handler(read_packet(x)))
-            num_cores = int(cpu_count() / 2)
-            processed_bag = processed_bag.repartition(npartitions=num_cores)
-            results = compute(*processed_bag.to_delayed())
-            for chunk in results:
-                df_chunk = pd.concat(chunk, ignore_index=True)
+            # start = 0
+            # df = pd.read_csv(self.file_path, skiprows=start, nrows=self.chunk_size, header=None)
+            chunk_iter = pd.read_csv(self.file_path, chunksize=self.chunk_size, header=None)
+            for chunk in chunk_iter:
+                lines = chunk[0].tolist()
+                packets = read_dfpackets(lines)
+                df_chunk = pd.DataFrame(packets)
                 self.provider.append_data(df_chunk)
                 self.data_loaded.emit()
+                if not self._is_running:
+                    break
 
         elif file_extension == 'csv':
             for chunk in pd.read_csv(self.file_path, chunksize=self.chunk_size):

@@ -13,6 +13,10 @@ class DataFrameProvider:
         self.data = pd.DataFrame()
 
     def append_data(self, chunk):
+
+        # need to change to use list instead of dataframe as input and append using loc
+        # df.loc[len(df)] = new_row
+
         # Identify numeric and string columns
         numeric_cols = chunk.select_dtypes(include='number').columns
         string_cols = chunk.select_dtypes(include=['object', 'string']).columns
@@ -63,7 +67,7 @@ class DataFrameProvider:
     def query_filter(self, filter_argument, return_data=False):
         #return self.alldata.query(filter_argument)
         ## Need to sanitize the input to avoid code injection
-        result = eval(filter_argument, {'df': self.alldata})        
+        result = eval(filter_argument, {'df': self.alldata})
         if return_data:
             return result
         else:
@@ -75,7 +79,8 @@ class DataFrameProvider:
     # maybe change them to another python file to add all the analysis decoders such as base64
 
     def add_strings_column(self, column_index):
-        self.data['strings'] = self.data.iloc[:, column_index].apply(self.find_strings)
+        self.alldata['strings'] = self.alldata.iloc[:, column_index].apply(self.find_strings)
+        self.data['strings'] = self.alldata['strings']
  
     def to_ascii(self, datahex):
         return ''.join(
@@ -88,7 +93,7 @@ class DataFrameProvider:
         pattern = compile('[\x20-\x7E]{%d,}' % min_length)
         # Find all matches of the pattern in the data
         strings = pattern.findall(data)
-        # Decode the byte sequences to strings
+        strings = ', '.join(strings)
         return strings
 
     def add_base64_column(self, column_source):

@@ -31,6 +31,9 @@
     </property>
     <item>
      <widget class="QTreeWidget" name="interface_list">
+      <property name="selectionMode">
+       <enum>QAbstractItemView::MultiSelection</enum>
+      </property>
       <column>
        <property name="text">
         <string notr="true">Interface</string>

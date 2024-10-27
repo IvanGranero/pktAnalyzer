@@ -27,13 +27,16 @@ class REPL(QWidget):
 
         self.setLayout(self.layout)
 
-    def evaluate(self):
+    def evaluate(self, return_data=False):
         code = self.input.text()
         self.input.clear()
         try:
             result = eval(code, {'df': self.provider.alldata})
             self.output.append(f">>> {code}\n{result}")
-            return result
+            if return_data:
+                return result
+            else:
+                self.provider.data = result
         except Exception as e:
             self.output.append(f">>> {code}\nError: {e}")       
 
@@ -51,7 +54,7 @@ class OptionsWindow(QDialog):
         self.available_interfaces = []
         for iface in interfaces:
             self.available_interfaces.append(iface.name)
-            item = QTreeWidgetItem([iface.name + " " + iface.mac])
+            item = QTreeWidgetItem([iface.name])
             self.interface_list.addTopLevelItem(item)
 
 #END OF CLASS OptionsWindow
@@ -59,29 +62,41 @@ class OptionsWindow(QDialog):
 class PlotWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        loadUi("ui/plotWindow.ui", self)        
         self.mainwindow = parent
-        self.setWindowTitle("Plot Window")
-        self.setGeometry(100, 100, 800, 600)
-
-        layout = QVBoxLayout()
-        # Create a matplotlib figure and canvas
         self.canvas = FigureCanvas(Figure(figsize=(5, 4)))
-        layout.addWidget(self.canvas)
-        
-        # Add Navigation toolbar
+        self.plot_layout.addWidget(self.canvas)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        layout.addWidget(self.toolbar)
-        
-        # Plot something
-        self.plot()
-
-        self.setLayout(layout)
+        self.plot_layout.addWidget(self.toolbar)
+        self.btn_plot.clicked.connect(self.plot)
 
     def plot(self):
+        xaxis = self.xaxis.text()
+        yaxis = self.yaxis.text()
+        column_index = self.mainwindow.tableview.selectedIndexes()
+        if column_index:
+            column_index = column_index[0].column()
+        
+        ydata = self.mainwindow.data_provider.data.iloc[:, column_index]
+        self.canvas.figure.clf()
         ax = self.canvas.figure.add_subplot(111)
-        data = self.mainwindow.data_provider.query_filter("df[df['identifier'] == 304]['hexbytes']")
-        ax.plot(data, 'r-')
-        ax.set_title('Sample Plot')
+        selected_chart = self.chart_types.currentItem().text()
+        if selected_chart == 'Line Plot':
+            ax.plot(ydata)
+        elif selected_chart == 'Scatter Plot':
+            ax.scatter(ydata.index, ydata)
+        elif selected_chart == 'Bar Chart':
+            ydata = ydata.value_counts()
+            ax.bar(ydata.index, ydata)
+        elif selected_chart == 'Pie Chart':
+            ydata = ydata.value_counts()
+            ax.pie(ydata, labels=ydata.index)
+        elif selected_chart == 'Histogram':
+            ax.hist(ydata)
+        elif selected_chart == 'Box Plot':
+            ax.boxplot(ydata)
+
+        ax.set_title(selected_chart)
         self.canvas.draw() 
 
 #END OF CLASS PlotWindow
