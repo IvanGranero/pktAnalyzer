@@ -39,6 +39,7 @@ class DataFrameProvider:
         self.delete_temp_folder()
         os.makedirs(self.temp_folder)
         self.alldata_size = 0
+        self.data_size = 0
         self.file_counter = 0
 
     def append_df(self, new_df):
@@ -46,6 +47,7 @@ class DataFrameProvider:
         file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
         new_df.to_parquet(file_path, index=False)
         self.data = new_df.copy()
+        self.data_size += new_df.shape[0]
 
     def append_rows(self, rows):
         new_df = pd.DataFrame(rows, columns=self.alldata.columns)
@@ -53,10 +55,19 @@ class DataFrameProvider:
         file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
         new_df.to_parquet(file_path, index=False)
         self.data = new_df.copy()
+        self.data_size += new_df.shape[0]        
+
+    def append_packet(self, packet):
+        self.alldata.loc[len(self.alldata)] = packet
+        self.data.loc[len(self.data)] = packet
+        self.alldata_size += 1
+        self.data_size += 1
 
     def read_parquet(self, filepath):
         self.alldata = pd.read_parquet(filepath)
         self.data = self.alldata.copy()
+        self.alldata_size = self.alldata.shape[0]
+        self.data_size = self.alldata_size        
     
     def read_all_parquets(self):
         data_dir = Path(self.temp_folder)
@@ -65,6 +76,8 @@ class DataFrameProvider:
             for parquet_file in data_dir.glob('*.parquet')
         ).reset_index(drop=True)
         self.data = self.alldata.copy()
+        self.alldata_size = self.alldata.shape[0]
+        self.data_size = self.alldata_size
 
 
     def save_packets(self, filepath, selected_filter):

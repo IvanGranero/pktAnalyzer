@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
 
     def set_details(self):
         alldata_rows = self.data_provider.alldata_size
-        data_rows = self.data_provider.data.shape[0]
+        data_rows = self.data_provider.data_size
         percentage = 0 if alldata_rows == 0 else (data_rows / alldata_rows) * 100
         alldata_rows = "Total Packets: " + str(alldata_rows)
         data_rows = " Displaying: " + str(data_rows)

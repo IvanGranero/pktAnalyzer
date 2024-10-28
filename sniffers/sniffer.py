@@ -23,7 +23,7 @@ class PacketLoader(QThread):
     def packet_handler(self, packet):
         # no need for chunk_size since we are sniffing each packet
         pkt = protocol_handler(packet)
-        self.provider.append_rows([pkt])
+        self.provider.append_packet(pkt)
         self.packets_loaded.emit() # Triggers table view update with live view
         self.packet_list.clear()  # Clear the list for the next batch
 
