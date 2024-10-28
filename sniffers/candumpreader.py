@@ -1,15 +1,15 @@
 from scapy.layers.can import CANFD, CAN
 from sniffers.protocols import protocol_handler
 
-def read_dfpackets(lines):
-    pkts = []
+def read_packets(lines):
+    list_of_packets = []
     for line in lines:
         try:
             pkt = protocol_handler(read_packet(line))
-            pkts.append(pkt)
+            list_of_packets.append(pkt)
         except:
             pass
-    return pkts
+    return list_of_packets
 
 def read_packet(line):
     # Read and strip leading whitespaces

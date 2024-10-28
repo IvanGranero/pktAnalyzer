@@ -95,11 +95,22 @@
      </layout>
     </item>
     <item>
-     <widget class="QLabel" name="display_status">
-      <property name="text">
-       <string>Ready</string>
-      </property>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="QLabel" name="display_status">
+        <property name="text">
+         <string>Ready</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="display_details">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

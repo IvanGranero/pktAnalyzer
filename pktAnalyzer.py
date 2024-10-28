@@ -35,8 +35,7 @@ class MainWindow(QMainWindow):
         self.repl = REPL(self.data_provider)
         self.df_model = DataFrameModel(self.data_provider)
         self.tableview.setModel(self.df_model)
-        self.tableview.verticalHeader().setVisible(False)
-        #self.tableview.clicked.connect(self.show_packet)
+        self.tableview.verticalHeader().setVisible(True)
         self.tableview.selectionModel().currentChanged.connect(self.show_packet)
                         
     def open_options_window(self):
@@ -53,6 +52,19 @@ class MainWindow(QMainWindow):
         self.repl.close()
         event.accept()
 
+    def refresh_table(self):
+        self.df_model.set_dataframe()
+        self.set_details()
+
+    def set_details(self):
+        alldata_rows = self.data_provider.alldata_size
+        data_rows = self.data_provider.data.shape[0]
+        percentage = 0 if alldata_rows == 0 else (data_rows / alldata_rows) * 100
+        alldata_rows = "Total Packets: " + str(alldata_rows)
+        data_rows = " Displaying: " + str(data_rows)
+        percentage = " (" + "{:.2f}".format(percentage) + "%)"
+        self.display_details.setText( alldata_rows  +  data_rows + percentage )
+
     def set_status(self, status, warning_or_success='none'):
         self.display_status.setText(status)
         if (warning_or_success == 'warning'):
@@ -68,11 +80,9 @@ class MainWindow(QMainWindow):
         filepath, _= QFileDialog.getOpenFileName(self, 'Open File', "", file_dialog_filter, options=options)
         if len(filepath) > 0:
             self.set_status("Reading file...")
-            self.data_provider.clear_data()
-            self.df_model.set_dataframe()
             self.btn_start_logger.setText("Stop reading")
             self.loader = FileLoader(self.data_provider, filepath, chunk_size=1000)
-            self.loader.data_loaded.connect(self.df_model.set_dataframe)
+            self.loader.data_loaded.connect(self.refresh_table)
             self.loader.finished.connect(self.file_loaded)
             self.loader.start()
 
@@ -93,7 +103,7 @@ class MainWindow(QMainWindow):
             column_index = selected_index.column()                 
             self.set_status('Busy... Please wait!')
             self.data_provider.add_strings_column(column_index) #add min_length as argument
-            self.df_model.set_dataframe()
+            self.refresh_table()
             self.update_columns_list()
             #self.update_columns_list()
             self.set_status('Ready.')
@@ -106,11 +116,12 @@ class MainWindow(QMainWindow):
         self.plot_window.show()
 
     def file_loaded(self):
+        self.data_provider.alldata_size = self.data_provider.alldata.shape[0]
         self.btn_start_logger.setText("Start logging")
-        self.actionRestart.setEnabled(True)
+        self.actionRestart.setEnabled(True)        
         self.update_columns_list()
-        #self.tableview.cellClicked.emit(0, 0)
-        self.set_status("Ready.")
+        self.set_status("File loaded.", 'success')
+        self.refresh_table()
 
     def update_columns_list(self):
         list_columns = self.data_provider.data.columns
@@ -130,7 +141,7 @@ class MainWindow(QMainWindow):
 
     def update_values_list(self):
         column_name = self.filter_list.currentItem().text()
-        filter_argument = "sorted(df['"+column_name+"'].unique())"
+        filter_argument = "sorted(data['"+column_name+"'].unique())"
         list = self.query_data(filter_argument, True)
         self.filter_view.clear()
         for word in list:
@@ -139,10 +150,9 @@ class MainWindow(QMainWindow):
     def select_filter(self):
         column_name = self.filter_list.currentItem().text()
         argument = self.filter_view.currentItem().text()
-        column_type = self.data_provider.data[column_name].dtype
-        if column_type == 'str' or column_type == 'string':
-            argument = '"' + argument + '"'
-        #filter_argument = column_name +' == ' + argument
+        column_type = str(self.data_provider.data[column_name].dtype)
+        if column_type in {'object', 'str', 'string'}:
+            argument = f"'{argument}'"
         filter_argument = "df[df['"+ column_name + "'] == "+argument+"]"
         self.inline_search.setText(filter_argument)
         self.run_filter()
@@ -152,15 +162,14 @@ class MainWindow(QMainWindow):
         if len(filter_argument) > 0:
             try:
                 self.set_status('Busy... Please wait!')
-
                 if self.ai_checkBox.isChecked():
                     prompt = filter_argument
                     data = self.data_provider.df_toJSON()
                     prompt = utils.aiPrompt.prepare_eval_prompt(data, prompt)
                     filter_argument = utils.aiPrompt.get_completion (prompt)
 
-                self.query_data(filter_argument)                
-                self.df_model.set_dataframe()
+                self.query_data(filter_argument)
+                self.refresh_table()
                 self.set_status('Ready.')
             except Exception as e:
                 print (e)
@@ -177,27 +186,29 @@ class MainWindow(QMainWindow):
         if current_text.endswith("tart logging"):
             if current_text == "Start logging":
                 self.data_provider.clear_data()
-                self.df_model.set_dataframe()
+                self.refresh_table()
 
             self.btn_start_logger.setText("Stop logging")
             self.actionStart.setEnabled(False)
             self.actionRestart.setEnabled(False)
             self.actionStop.setEnabled(True)            
             self.loader = PacketLoader(self.data_provider, self.selected_interface, chunk_size=1)
-            self.loader.packets_loaded.connect(self.df_model.set_dataframe)
+            self.loader.packets_loaded.connect(self.refresh_table)
             self.loader.start()
             self.set_status("Logging...") 
-        else:              # (current_text == "Stop logging" or current_text == "Stop reading"):
+        else:
             self.loader.stop()
             self.loader = None
             if current_text == "Stop reading":
-                self.btn_start_logger.setText("Restart reading")
+                self.data_provider.alldata_size = self.data_provider.alldata.shape[0]
+                self.btn_start_logger.setText("Start logging")
             else:
                 self.btn_start_logger.setText("Restart logging")
                 self.actionRestart.setEnabled(True)
             self.actionStop.setEnabled(False)
             self.actionStart.setEnabled(True)
             self.set_status("Ready.")
+            self.set_details()
             self.update_columns_list()
 
     def open_repl(self):

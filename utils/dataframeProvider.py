@@ -1,39 +1,71 @@
 import pandas as pd
 from re import compile
+from uuid import uuid4
+import os
+from shutil import rmtree
+from pathlib import Path
 
 class DataFrameProvider:
     def __init__(self):
-        self.alldata = pd.DataFrame() # dataframe to store all the data
-        self.data = pd.DataFrame() # dataframe to store the data to be displayed
+        # Define column names and their data types
+        self.columns_and_dtypes = {
+            'time': 'float64',
+            'source': 'string',
+            'destination': 'string',
+            'protocol': 'string',
+            'length': 'int64',
+            'info': 'string',
+            'identifier': 'string',
+            'data': 'string',
+            'dataframe': 'string',
+            'dataprint': 'string'
+        }
+        # Disable SettingWithCopyWarning
+        pd.options.mode.chained_assignment = None
+        self.temp_folder = f"temp_processing_data_{uuid4().hex}"
+        self.clear_data()
+
+    def __del__(self):
+        self.delete_temp_folder()
+
+    def delete_temp_folder(self):
+        if os.path.exists(self.temp_folder):
+            rmtree(self.temp_folder)
 
     def clear_data(self):
-        del self.alldata
-        self.alldata = pd.DataFrame()
-        del self.data
-        self.data = pd.DataFrame()
+        # empty DataFrame with the specified columns and data types
+        self.alldata = pd.DataFrame({col: pd.Series(dtype=typ) for col, typ in self.columns_and_dtypes.items()})
+        self.data = self.alldata.copy() # dataframe to store the data to be displayed
+        self.delete_temp_folder()
+        os.makedirs(self.temp_folder)
+        self.alldata_size = 0
+        self.file_counter = 0
 
-    def append_data(self, chunk):
+    def append_df(self, new_df):
+        self.file_counter += 1
+        file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
+        new_df.to_parquet(file_path, index=False)
+        self.data = new_df.copy()
 
-        # need to change to use list instead of dataframe as input and append using loc
-        # df.loc[len(df)] = new_row
+    def append_rows(self, rows):
+        new_df = pd.DataFrame(rows, columns=self.alldata.columns)
+        self.file_counter += 1        
+        file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
+        new_df.to_parquet(file_path, index=False)
+        self.data = new_df.copy()
 
-        # Identify numeric and string columns
-        numeric_cols = chunk.select_dtypes(include='number').columns
-        string_cols = chunk.select_dtypes(include=['object', 'string']).columns
-        # Fill NA/None values with appropriate defaults
-        chunk = chunk.fillna({col: 0 for col in numeric_cols})
-        chunk = chunk.fillna({col: '' for col in string_cols})
-        # Convert columns to appropriate data types
-        chunk = chunk.convert_dtypes()
-        # Add a unique index to the DataFrame if not already present
-        if 'no' not in chunk.columns:
-            chunk['no'] = range(len(self.alldata), len(self.alldata) + len(chunk))
-        # Moves the no column to the beginning
-        chunk = chunk[['no'] + [col for col in chunk.columns if col != 'no']]
-        # Concatenate the chunk to the dataframes
-        concat_result = pd.concat([self.alldata, chunk], ignore_index=True)
-        self.alldata = concat_result
-        self.data = concat_result.copy()
+    def read_parquet(self, filepath):
+        self.alldata = pd.read_parquet(filepath)
+        self.data = self.alldata.copy()
+    
+    def read_all_parquets(self):
+        data_dir = Path(self.temp_folder)
+        self.alldata = pd.concat(
+            pd.read_parquet(parquet_file)
+            for parquet_file in data_dir.glob('*.parquet')
+        ).reset_index(drop=True)
+        self.data = self.alldata.copy()
+
 
     def save_packets(self, filepath, selected_filter):
         if selected_filter.startswith("Parquet"):
@@ -67,7 +99,7 @@ class DataFrameProvider:
     def query_filter(self, filter_argument, return_data=False):
         #return self.alldata.query(filter_argument)
         ## Need to sanitize the input to avoid code injection
-        result = eval(filter_argument, {'df': self.alldata})
+        result = eval(filter_argument, {'df': self.alldata, 'data': self.data})
         if return_data:
             return result
         else:

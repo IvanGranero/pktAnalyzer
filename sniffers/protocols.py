@@ -21,51 +21,54 @@ with open('sniffers/proto_fields.json', 'r') as file:
 
 conf.contribs['CAN']['swap-bytes'] = True   # True for Wireshark dissection False for PC_CAN Socket dissection
 
-# Need to convert this to a list instead of dictionary and add the fixed column names at the end
 def protocol_handler(packet):
-
     pktbytes = bytes(packet)
-    pktlenght = len(packet)
-
-    # Linux PF_CAN Sockets always return 16 bytes per CAN frame receive.
-    if pktlenght == 16:
+    pktlength = len(packet)
+    
+    # Handle CAN packets
+    if pktlength == 16:
         packet = CAN(pktbytes)
 
-    packet_data = {
-        'time': float(packet.time),
-        'length': pktlenght,
-        'info': packet.summary(),
-        'dataframe': pktbytes.hex(),
-        'dataprint': pktbytes.decode('ascii', errors='replace').replace('\ufffd', '')
-    }
+    packet_data = [
+        float(packet.time),  # Time
+        '', # Source,
+        '', # Destination
+        '', # Protocol
+        pktlength,  # Length
+        packet.summary(),  # Info
+        '',  # Identifier/Port
+        '',  # Data
+        pktbytes.hex(),  # Dataframe
+        pktbytes.decode('ascii', errors='replace').replace('\ufffd', '')  # Dataprint
+    ]
 
-    # Extracts all the fields from packet
+    # Extract additional fields
     layer = packet
     while layer:
         layer_name = layer.__class__.__name__
         if layer_name in important_fields:
             for field_info in important_fields[layer_name]['fields']:
                 field_name = field_info['name']
+                col_num = field_info['column_number']                
                 try:
                     field_value = layer.getfieldval(field_name)
                     if 'convert_from_to' in field_info:
                         if field_info['convert_from_to'] == 'int_to_hexstring':
-                            packet_data[field_name] = hex(field_value)
+                            packet_data[col_num] = hex(field_value)
+                        elif field_info['convert_from_to'] == 'int_to_string':
+                            packet_data[col_num] = str(field_value)
                         elif field_info['convert_from_to'] == 'bytes_to_hexstring':
-                            packet_data[field_name] = field_value.hex()
+                            packet_data[col_num] = field_value.hex()
                     else:
-                        packet_data[field_name] = field_value
+                        packet_data[col_num] = field_value
                 except (AttributeError, KeyError):
-                    pass
+                    pass # missing field handling
         else:
-            pass
-            # print(f"Unknown layer: {layer_name}")
-        
+            pass  # Unknown layer handling
 
         layer = layer.payload if layer.payload else None
 
-    packet_data['protocol'] = layer_name
-
+    packet_data[3] = layer_name  # Protocol
     return packet_data
 
 def hex_to_packet(hex_string, proto):
@@ -87,51 +90,3 @@ def hex_to_packet(hex_string, proto):
     # If no known primary layer matches, return raw bytes
     return Raw(packet_bytes)
 
-
-# def protocol_handler(packet):
-#     pktbytes = bytes(packet)
-#     pktlength = len(packet)
-    
-#     # Handle CAN packets
-#     if pktlength == 16:
-#         packet = CAN(pktbytes)
-
-#     # Define the order of columns
-#     packet_data = [
-#         float(packet.time),  # Time
-#         pktlength,  # Length
-#         packet.summary(),  # Info
-#         pktbytes.hex(),  # Dataframe
-#         pktbytes.decode('ascii', errors='replace').replace('\ufffd', '')  # Dataprint
-#     ]
-
-#     # Extract additional fields
-#     layer = packet
-#     fields_order = ['identifier', 'length', 'data', 'protocol']
-
-#     while layer:
-#         layer_name = layer.__class__.__name__
-#         if layer_name in important_fields:
-#             for field_info in important_fields[layer_name]['fields']:
-#                 field_name = field_info['name']
-#                 try:
-#                     field_value = layer.getfieldval(field_name)
-#                     if 'convert_from_to' in field_info:
-#                         if field_info['convert_from_to'] == 'int_to_hexstring':
-#                             packet_data.append(hex(field_value))
-#                         elif field_info['convert_from_to'] == 'bytes_to_hexstring':
-#                             packet_data.append(field_value.hex())
-#                     else:
-#                         packet_data.append(field_value)
-#                 except (AttributeError, KeyError):
-#                     packet_data.append(None)  # Append None for missing values
-#         else:
-#             pass  # Unknown layer handling
-
-#         if hasattr(layer, 'load'):
-#             layer = Raw(layer.load) if hasattr(layer, 'load') else Raw(layer)
-#         else:
-#             layer = layer.payload if layer.payload else None
-
-#     packet_data.append(layer_name)  # Protocol
-#     return packet_data

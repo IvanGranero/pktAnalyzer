@@ -1,65 +1,65 @@
-{  
+{
     "CAN": {
         "fields": [
-            { "name": "identifier", "convert_from_to": "int_to_hexstring" },
-            { "name": "length" },
-            { "name": "data", "convert_from_to": "bytes_to_hexstring" }
+            { "name": "identifier", "convert_from_to": "int_to_hexstring", "column_number": 6 },
+            { "name": "length", "column_number": 4 },
+            { "name": "data", "convert_from_to": "bytes_to_hexstring", "column_number": 7 }
         ]
     },
     "CANFD": {
         "fields": [
-            { "name": "identifier", "convert_from_to": "int_to_hexstring" },
-            { "name": "length" },
-            { "name": "data", "convert_from_to": "bytes_to_hexstring" }
+            { "name": "identifier", "convert_from_to": "int_to_hexstring", "column_number": 6 },
+            { "name": "length", "column_number": 4 },
+            { "name": "data", "convert_from_to": "bytes_to_hexstring", "column_number": 7 }
         ]
     },
     "J1939": {
         "fields": [
-            { "name": "pgn" },
-            { "name": "priority" },
-            { "name": "source" },
-            { "name": "destination" }
+            { "name": "pgn", "column_number": 5 },
+            { "name": "priority", "column_number": 5 },
+            { "name": "source", "column_number": 1 },
+            { "name": "destination", "column_number": 2 }
         ]
     },
     "ISO-TP": {
         "fields": [
-            { "name": "source" },
-            { "name": "destination" }
+            { "name": "src", "column_number": 1 },
+            { "name": "dst", "column_number": 2 }
         ]
     },
     "DoIP": {
         "fields": [
-            { "name": "data" }
+            { "name": "data", "column_number": 7 }
         ]
     },
     "UDS": {
         "fields": [
-            { "name": "source" },
-            { "name": "destination" }
+            { "name": "src", "column_number": 1 },
+            { "name": "dst", "column_number": 2 }
         ]
     },
     "Ether": {
         "fields": [
-            { "name": "source" },
-            { "name": "destination" },
-            { "name": "protocol" }
+            { "name": "src", "column_number": 1 },
+            { "name": "dst", "column_number": 2 },
+            { "name": "proto", "column_number": 3 }
         ]
     },
     "IP": {
         "fields": [
-            { "name": "source" },
-            { "name": "destination" },
-            { "name": "protocol" }
+            { "name": "src", "column_number": 1 },
+            { "name": "dst", "column_number": 2 },
+            { "name": "proto", "column_number": 3 }
         ]
     },
     "TCP": {
         "fields": [
-            { "name": "port" }
+            { "name": "dport", "convert_from_to": "int_to_string", "column_number": 6 }
         ]
     },
     "UDP": {
         "fields": [
-            { "name": "port" }
+            { "name": "dport", "convert_from_to": "int_to_string", "column_number": 6 }
         ]
     }
 }
