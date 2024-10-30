@@ -1,12 +1,10 @@
-from pandas import DataFrame
-from struct import pack
 from json import load as loadjson
 from scapy.all import load_contrib, load_layer
 from scapy.config import conf
-#from scapy.contrib.isotp import ISOTP
 from scapy.layers.l2 import Ether, ARP
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse, Raw
 from scapy.layers.can import CANFD, CAN
+#from scapy.contrib.isotp import ISOTP, ISOTPMessageBuilder
 
 # Load the contrib modules
 load_contrib('automotive.doip')
@@ -39,7 +37,7 @@ def protocol_handler(packet):
         '',  # Identifier/Port
         '',  # Data
         pktbytes.hex(),  # Dataframe
-        pktbytes.decode('ascii', errors='replace').replace('\ufffd', '')  # Dataprint
+        pktbytes.decode('latin1', errors='replace') # Dataprint
     ]
 
     # Extract additional fields

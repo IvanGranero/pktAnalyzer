@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-import signal, sys
+from sys import argv
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
 from ui.dialogsWidgets import REPL, OptionsWindow, PlotWindow
 from ui.dataframeModel import DataFrameModel
@@ -9,7 +8,6 @@ from sniffers.protocols import hex_to_packet
 from utils.dataframeProvider import DataFrameProvider
 from utils.fileLoader import FileLoader
 import utils.aiPrompt
-import matplotlib.pyplot as plt
 
 # Subclass MainWindow to customize your application's main window
 class MainWindow(QMainWindow):
@@ -33,7 +31,7 @@ class MainWindow(QMainWindow):
         self.actionOpen_REPL.triggered.connect(self.open_repl)
         self.data_provider = DataFrameProvider()
         self.repl = REPL(self.data_provider)
-        self.df_model = DataFrameModel(self.data_provider)
+        self.df_model = DataFrameModel(self.data_provider.alldata)
         self.tableview.setModel(self.df_model)
         self.tableview.verticalHeader().setVisible(True)
         self.tableview.selectionModel().currentChanged.connect(self.show_packet)
@@ -52,13 +50,13 @@ class MainWindow(QMainWindow):
         self.repl.close()
         event.accept()
 
-    def refresh_table(self):
-        self.df_model.set_dataframe()
+    def reload_table(self):
+        self.df_model.update_data(self.data_provider.alldata)
         self.set_details()
 
     def set_details(self):
-        alldata_rows = self.data_provider.alldata_size
-        data_rows = self.data_provider.data_size
+        alldata_rows = self.data_provider.alldata.shape[0]
+        data_rows = self.df_model.rowCount()
         percentage = 0 if alldata_rows == 0 else (data_rows / alldata_rows) * 100
         alldata_rows = "Total Packets: " + str(alldata_rows)
         data_rows = " Displaying: " + str(data_rows)
@@ -70,7 +68,7 @@ class MainWindow(QMainWindow):
         if (warning_or_success == 'warning'):
             self.display_status.setStyleSheet(
                 "QLabel { color : red; background-color: transparent; }")
-        elif (warning_or_success == 'success'):
+        else:
             self.display_status.setStyleSheet(
                 "QLabel { color : black; background-color: transparent; }")   
 
@@ -82,7 +80,7 @@ class MainWindow(QMainWindow):
             self.set_status("Reading file...")
             self.btn_start_logger.setText("Stop reading")
             self.loader = FileLoader(self.data_provider, filepath, chunk_size=1000)
-            self.loader.data_loaded.connect(self.refresh_table)
+            self.loader.data_loaded.connect(self.set_details) # need to change to a way to update the table
             self.loader.finished.connect(self.file_loaded)
             self.loader.start()
 
@@ -103,7 +101,7 @@ class MainWindow(QMainWindow):
             column_index = selected_index.column()                 
             self.set_status('Busy... Please wait!')
             self.data_provider.add_strings_column(column_index) #add min_length as argument
-            self.refresh_table()
+            self.df_model.update_data(self.data_provider.alldata)
             self.update_columns_list()
             #self.update_columns_list()
             self.set_status('Ready.')
@@ -116,33 +114,30 @@ class MainWindow(QMainWindow):
         self.plot_window.show()
 
     def file_loaded(self):
-        self.data_provider.alldata_size = self.data_provider.alldata.shape[0]
         self.btn_start_logger.setText("Start logging")
         self.actionRestart.setEnabled(True)        
         self.update_columns_list()
         self.set_status("File loaded.", 'success')
-        self.refresh_table()
+        self.df_model.update_data(self.data_provider.alldata)
 
     def update_columns_list(self):
-        list_columns = self.data_provider.data.columns
+        list_columns = self.data_provider.alldata.columns
         self.filter_list.clear()
         self.filter_view.clear()
         for word in list_columns:
             list_item = QListWidgetItem(str(word), self.filter_list)
 
-    def query_data(self, filter_argument, return_data=False):
+    def query_data(self, filter_argument):
         if self.repl.isVisible():
             self.repl.input.setText(filter_argument)
-            data = self.repl.evaluate(return_data)
+            data = self.repl.evaluate()
         else:
-            data = self.data_provider.query_filter(filter_argument, return_data)
-        if return_data:
-            return data
+            data = self.data_provider.query_filter(filter_argument)
+        return data
 
     def update_values_list(self):
         column_name = self.filter_list.currentItem().text()
-        filter_argument = "sorted(data['"+column_name+"'].unique())"
-        list = self.query_data(filter_argument, True)
+        list = self.df_model._data[column_name].drop_duplicates().sort_values().tolist()
         self.filter_view.clear()
         for word in list:
             list_item = QListWidgetItem(str(word), self.filter_view)
@@ -150,7 +145,7 @@ class MainWindow(QMainWindow):
     def select_filter(self):
         column_name = self.filter_list.currentItem().text()
         argument = self.filter_view.currentItem().text()
-        column_type = str(self.data_provider.data[column_name].dtype)
+        column_type = str(self.data_provider.alldata[column_name].dtype)
         if column_type in {'object', 'str', 'string'}:
             argument = f"'{argument}'"
         filter_argument = "df[df['"+ column_name + "'] == "+argument+"]"
@@ -168,14 +163,15 @@ class MainWindow(QMainWindow):
                     prompt = utils.aiPrompt.prepare_eval_prompt(data, prompt)
                     filter_argument = utils.aiPrompt.get_completion (prompt)
 
-                self.query_data(filter_argument)
-                self.refresh_table()
+                filtered_data = self.query_data(filter_argument)
+                self.df_model.update_data(filtered_data)
+                self.set_details()
                 self.set_status('Ready.')
             except Exception as e:
                 print (e)
                 self.set_status('There was a problem with the calculation','warning')
         else:
-            self.set_status("Input a query e.g. identifier == 310 or check the AI box and use natural language.")
+            self.reload_table()
 
     def start_logger(self):
         self.btn_start_logger.setText("Start logging")
@@ -186,14 +182,14 @@ class MainWindow(QMainWindow):
         if current_text.endswith("tart logging"):
             if current_text == "Start logging":
                 self.data_provider.clear_data()
-                self.refresh_table()
+                self.df_model.update_data(self.data_provider.alldata)
 
             self.btn_start_logger.setText("Stop logging")
             self.actionStart.setEnabled(False)
             self.actionRestart.setEnabled(False)
             self.actionStop.setEnabled(True)            
             self.loader = PacketLoader(self.data_provider, self.selected_interface, chunk_size=1)
-            self.loader.packets_loaded.connect(self.refresh_table)
+            self.loader.packets_loaded.connect(self.reload_table)
             self.loader.start()
             self.set_status("Logging...") 
         else:
@@ -208,7 +204,7 @@ class MainWindow(QMainWindow):
             self.actionStop.setEnabled(False)
             self.actionStart.setEnabled(True)
             self.set_status("Ready.")
-            self.set_details()
+            self.reload_table()
             self.update_columns_list()
 
     def open_repl(self):
@@ -222,8 +218,8 @@ class MainWindow(QMainWindow):
         row = current.row()
         column = current.column()
         #self.tableview.selectRow(row)
-        data = self.data_provider.data.iloc[row]['dataframe']
-        proto = self.data_provider.data.iloc[row]['protocol']
+        data = self.df_model._data.iloc[row]['dataframe']
+        proto = self.df_model._data.iloc[row]['protocol']
         dataprint =  bytes.fromhex(data).decode('latin1')
         data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))
         self.data_inspector.setText(data + "\n" +  dataprint)
@@ -244,22 +240,13 @@ class MainWindow(QMainWindow):
 #END OF CLASS MainWindow
 
 def openMainWindow(argv):
-    app = QApplication(argv)     
+    app = QApplication(argv)
     window = MainWindow()
     window.show()
     app.exec()
 
-def handler_interrupt(signal, frame):
-    sys.exit(0)
-
 def main():
-    # add try catch to all 
-    signal.signal(signal.SIGINT, handler_interrupt)
-    if(len(sys.argv) > 2):
-        # to start logging thread from the command line e.g. pktLogger can0 -s "flag{"
-        print ("command line options not available yet")   
-
-    openMainWindow(sys.argv)
+    openMainWindow(argv)
 
 if __name__ == "__main__":
     main()

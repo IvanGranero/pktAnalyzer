@@ -18,7 +18,7 @@
     <layout class="QVBoxLayout" name="plot_layout"/>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,50">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,50">
      <item>
       <widget class="QListWidget" name="chart_types">
        <item>
@@ -81,6 +81,9 @@
       </widget>
      </item>
      <item>
+      <widget class="QComboBox" name="dropdown_yaxis"/>
+     </item>
+     <item>
       <widget class="QLineEdit" name="yaxis"/>
      </item>
      <item>
@@ -89,6 +92,9 @@
         <string>X-Axis</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="dropdown_xaxis"/>
      </item>
      <item>
       <widget class="QLineEdit" name="xaxis"/>

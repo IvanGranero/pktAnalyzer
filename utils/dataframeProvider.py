@@ -1,7 +1,7 @@
 import pandas as pd
+import os
 from re import compile
 from uuid import uuid4
-import os
 from shutil import rmtree
 from pathlib import Path
 
@@ -23,7 +23,7 @@ class DataFrameProvider:
         # Disable SettingWithCopyWarning
         pd.options.mode.chained_assignment = None
         self.temp_folder = f"temp_processing_data_{uuid4().hex}"
-        self.clear_data()
+        self.alldata = pd.DataFrame({col: pd.Series(dtype=typ) for col, typ in self.columns_and_dtypes.items()})
 
     def __del__(self):
         self.delete_temp_folder()
@@ -35,56 +35,34 @@ class DataFrameProvider:
     def clear_data(self):
         # empty DataFrame with the specified columns and data types
         self.alldata = pd.DataFrame({col: pd.Series(dtype=typ) for col, typ in self.columns_and_dtypes.items()})
-        self.data = self.alldata.copy() # dataframe to store the data to be displayed
         self.delete_temp_folder()
         os.makedirs(self.temp_folder)
-        self.alldata_size = 0
-        self.data_size = 0
         self.file_counter = 0
 
-    def append_df(self, new_df):
-        self.file_counter += 1
-        file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
-        new_df.to_parquet(file_path, index=False)
-        self.data = new_df.copy()
-        self.data_size += new_df.shape[0]
-
-    def append_rows(self, rows):
-        new_df = pd.DataFrame(rows, columns=self.alldata.columns)
+    def save_chunk(self, chunk):
+        if not isinstance(chunk, pd.DataFrame):        
+            chunk = pd.DataFrame(chunk, columns=self.alldata.columns).reset_index(drop=True)
         self.file_counter += 1        
         file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
-        new_df.to_parquet(file_path, index=False)
-        self.data = new_df.copy()
-        self.data_size += new_df.shape[0]        
+        chunk.to_parquet(file_path, index=False)
 
     def append_packet(self, packet):
         self.alldata.loc[len(self.alldata)] = packet
-        self.data.loc[len(self.data)] = packet
-        self.alldata_size += 1
-        self.data_size += 1
 
     def read_parquet(self, filepath):
-        self.alldata = pd.read_parquet(filepath)
-        self.data = self.alldata.copy()
-        self.alldata_size = self.alldata.shape[0]
-        self.data_size = self.alldata_size        
+        self.alldata = pd.read_parquet(filepath).reset_index(drop=True)
     
     def read_all_parquets(self):
         data_dir = Path(self.temp_folder)
         self.alldata = pd.concat(
-            pd.read_parquet(parquet_file)
-            for parquet_file in data_dir.glob('*.parquet')
+            (pd.read_parquet(parquet_file) for parquet_file in data_dir.glob('*.parquet'))            
         ).reset_index(drop=True)
-        self.data = self.alldata.copy()
-        self.alldata_size = self.alldata.shape[0]
-        self.data_size = self.alldata_size
-
 
     def save_packets(self, filepath, selected_filter):
         if selected_filter.startswith("Parquet"):
             if not filepath.endswith(".parquet"):
                 filepath += ".parquet"
-            self.data.to_parquet(filepath)
+            self.alldata.to_parquet(filepath, index=False)
 
         elif selected_filter.startswith("LOG"):
             if not filepath.endswith(".log"):
@@ -99,7 +77,7 @@ class DataFrameProvider:
         elif selected_filter.startswith("CSV"):
             if not filepath.endswith(".csv"):
                 filepath += ".csv"
-            self.data.to_csv(filepath, sep='\t')
+            self.alldata.to_csv(filepath, sep='\t')
 
     def df_toJSON(self):
         try:
@@ -109,20 +87,11 @@ class DataFrameProvider:
             print (e)
         return datos
 
-    def query_filter(self, filter_argument, return_data=False):
-        #return self.alldata.query(filter_argument)
+    def query_filter(self, filter_argument):
         ## Need to sanitize the input to avoid code injection
-        result = eval(filter_argument, {'df': self.alldata, 'data': self.data})
-        if return_data:
-            return result
-        else:
-            self.data = result
+        return eval(filter_argument, {'df': self.alldata})
 
-    # def eval_filter(self, filter_argument):
-    #     return pd.eval(filter_argument)
-
-    # maybe change them to another python file to add all the analysis decoders such as base64
-
+    # change them to another python file to add all the analysis decoders such as base64
     def add_strings_column(self, column_index):
         self.alldata['strings'] = self.alldata.iloc[:, column_index].apply(self.find_strings)
         self.data['strings'] = self.alldata['strings']

@@ -3,7 +3,8 @@ from PyQt5.uic import loadUi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from scapy.interfaces import get_if_list, get_working_ifaces
+from scapy.interfaces import get_working_ifaces
+import networkx as nx
 
 class REPL(QWidget):
     def __init__(self, provider):
@@ -27,16 +28,13 @@ class REPL(QWidget):
 
         self.setLayout(self.layout)
 
-    def evaluate(self, return_data=False):
+    def evaluate(self):
         code = self.input.text()
         self.input.clear()
         try:
-            result = self.provider.query_filter(code, True)
+            result = self.provider.query_filter(code)
             self.output.append(f">>> {code}\n{result}")
-            if return_data:
-                return result
-            else:
-                self.provider.data = result
+            return result
         except Exception as e:
             self.output.append(f">>> {code}\nError: {e}")       
 
@@ -49,7 +47,6 @@ class OptionsWindow(QDialog):
         self.get_network_interfaces()
 
     def get_network_interfaces(self):
-        #self.available_interfaces = get_if_list()
         interfaces = get_working_ifaces()
         self.available_interfaces = []
         for iface in interfaces:
@@ -71,13 +68,13 @@ class PlotWindow(QDialog):
         self.btn_plot.clicked.connect(self.plot)
 
     def plot(self):
-        xaxis = self.xaxis.text()
-        yaxis = self.yaxis.text()
+        df = self.mainwindow.data_provider.alldata
         column_index = self.mainwindow.tableview.selectedIndexes()
         if column_index:
             column_index = column_index[0].column()
-        
-        ydata = self.mainwindow.data_provider.data.iloc[:, column_index]
+            self.yaxis.setText(df.columns[column_index]) 
+        self.xaxis.setText('Index')
+        ydata = df.iloc[:, column_index]
         self.canvas.figure.clf()
         ax = self.canvas.figure.add_subplot(111)
         selected_chart = self.chart_types.currentItem().text()
@@ -85,6 +82,10 @@ class PlotWindow(QDialog):
             ax.plot(ydata)
         elif selected_chart == 'Scatter Plot':
             ax.scatter(ydata.index, ydata)
+        elif selected_chart == 'Stack Plot':
+            pass
+            # need to ask for more ydatas
+            #ax.stackplot(days, apples, bananas, cherries, labels=['Apples', 'Bananas', 'Cherries'])
         elif selected_chart == 'Bar Chart':
             ydata = ydata.value_counts()
             ax.bar(ydata.index, ydata)
@@ -95,8 +96,13 @@ class PlotWindow(QDialog):
             ax.hist(ydata)
         elif selected_chart == 'Box Plot':
             ax.boxplot(ydata)
+        elif selected_chart == 'Event Plot':
+            ax.eventplot(ydata, orientation='horizontal', linelengths=0.8, color='blue')  
+        elif selected_chart == 'Network Graph':
+            G = nx.from_pandas_edgelist(df, 'source', 'destination', create_using=nx.DiGraph())
+            nx.draw(G, ax=ax, with_labels=True, node_size=2000, node_color="skyblue", pos=nx.spring_layout(G), arrowstyle='-|>', arrowsize=12)
 
         ax.set_title(selected_chart)
-        self.canvas.draw() 
+        self.canvas.draw()
 
 #END OF CLASS PlotWindow
