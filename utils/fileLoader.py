@@ -7,7 +7,7 @@ from scapy.layers.can import CandumpReader
 from multiprocessing import cpu_count, Pool
 
 class FileLoader(QThread):
-    data_loaded = pyqtSignal()
+    data_loaded = pyqtSignal(tuple)
     finished = pyqtSignal()
 
     def __init__(self, provider, file_path, chunk_size=1000, parent=None):
@@ -20,9 +20,7 @@ class FileLoader(QThread):
     def run(self):
         self.provider.clear_data()
         count = sum(1 for i in open(self.file_path, 'rb'))
-        # need to send count to know percentage while loading
-
-        self.data_loaded.emit()
+        self.data_loaded.emit((count, 0))
         file_extension = self.file_path.split('.')[-1].lower()
         if file_extension == 'gzip':
             file_extension = self.file_path.split('.')[-2].lower()
@@ -30,6 +28,7 @@ class FileLoader(QThread):
         if file_extension == 'pcap' or file_extension=='pcapng':     
             with PcapReader(self.file_path) as pcap_reader:
                 notEOF = True
+                chunk_counter = 0
                 while notEOF and self._is_running:
                     packets = []
                     try:
@@ -46,12 +45,13 @@ class FileLoader(QThread):
 
                     dfs = [protocol_handler(packet) for packet in packets]
                     self.provider.save_chunk(dfs)
-                    self.data_loaded.emit()
+                    chunk_counter += 1
+                    self.data_loaded.emit((count, chunk_counter*self.chunk_size))
             self.provider.read_all_parquets()
 
         elif file_extension == 'log':
             num_cpus = cpu_count()
-            # Initialize the chunk iterator
+            chunk_counter = 0
             chunk_iter = read_csv(self.file_path, chunksize=self.chunk_size, header=None)
             while self._is_running:
                 chunks = []
@@ -65,15 +65,18 @@ class FileLoader(QThread):
                     results_of_list_of_packets = pool.map(read_packets, chunks)
                 for list_of_packets in results_of_list_of_packets:
                     self.provider.save_chunk(list_of_packets)
-                self.data_loaded.emit()
+                chunk_counter += 1
+                self.data_loaded.emit((count, chunk_counter*self.chunk_size*num_cpus))
             self.provider.read_all_parquets()
 
         elif file_extension == 'csv':
+            chunk_counter = 0
             for chunk in read_csv(self.file_path, chunksize=self.chunk_size):
                 if not self._is_running:
                     break
                 self.provider.save_chunk(chunk)
-                self.data_loaded.emit()
+                chunk_counter += 1
+                self.data_loaded.emit((count, chunk_counter*self.chunk_size))
             self.provider.read_all_parquets()
             
         elif file_extension == 'parquet':
@@ -82,7 +85,6 @@ class FileLoader(QThread):
         else:
             print("Unsupported file type.") # NEED TO RAISE EXCEPTION TO CHANGE STATUS IN THE GUI
         self.provider.delete_temp_folder()
-        self.data_loaded.emit()
         self.finished.emit()
 
     def stop(self):

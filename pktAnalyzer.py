@@ -1,6 +1,6 @@
 from sys import argv
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
-from ui.dialogsWidgets import REPL, OptionsWindow, PlotWindow
+from ui.dialogsWidgets import REPL, OptionsWindow, PlotWindow, FindWindow
 from ui.dataframeModel import DataFrameModel
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
@@ -16,6 +16,7 @@ class MainWindow(QMainWindow):
         loadUi("ui/mainWindow.ui", self)
         self.options_window = None  # Initialize OptionsWindow
         self.plot_window = None # Initialize PlotWindow
+        self.find_window = None # Initialize FindWindow
         self.selected_interface = None
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
@@ -27,6 +28,7 @@ class MainWindow(QMainWindow):
         self.actionOptions.triggered.connect(self.open_options_window)
         self.actionAscii.triggered.connect(self.find_strings)
         self.actionGraph.triggered.connect(self.open_plot_window)
+        self.actionFind.triggered.connect(self.open_find_window)
         self.actionStart.triggered.connect(self.start_logger)
         self.actionOpen_REPL.triggered.connect(self.open_repl)
         self.data_provider = DataFrameProvider()
@@ -54,12 +56,18 @@ class MainWindow(QMainWindow):
         self.df_model.update_data(self.data_provider.alldata)
         self.set_details()
 
-    def set_details(self):
-        alldata_rows = self.data_provider.alldata.shape[0]
-        data_rows = self.df_model.rowCount()
+    def set_details(self, data_loaded=None):
+        if data_loaded is None:
+            alldata_rows = self.data_provider.alldata.shape[0]
+            data_rows = self.df_model.rowCount()
+            text = " Displaying: "
+        else:
+            alldata_rows, data_rows = data_loaded
+            text = " Loading: "
+
         percentage = 0 if alldata_rows == 0 else (data_rows / alldata_rows) * 100
         alldata_rows = "Total Packets: " + str(alldata_rows)
-        data_rows = " Displaying: " + str(data_rows)
+        data_rows = text + str(data_rows)
         percentage = " (" + "{:.2f}".format(percentage) + "%)"
         self.display_details.setText( alldata_rows  +  data_rows + percentage )
 
@@ -80,7 +88,7 @@ class MainWindow(QMainWindow):
             self.set_status("Reading file...")
             self.btn_start_logger.setText("Stop reading")
             self.loader = FileLoader(self.data_provider, filepath, chunk_size=1000)
-            self.loader.data_loaded.connect(self.set_details) # need to change to a way to update the table
+            self.loader.data_loaded.connect(lambda data_loaded: self.set_details(data_loaded))
             self.loader.finished.connect(self.file_loaded)
             self.loader.start()
 
@@ -103,7 +111,6 @@ class MainWindow(QMainWindow):
             self.data_provider.add_strings_column(column_index) #add min_length as argument
             self.df_model.update_data(self.data_provider.alldata)
             self.update_columns_list()
-            #self.update_columns_list()
             self.set_status('Ready.')
         else:
             self.set_status("Select a column.")
@@ -113,12 +120,18 @@ class MainWindow(QMainWindow):
             self.plot_window = PlotWindow(self) # Pass self (MainWindow instance) as parent
         self.plot_window.show()
 
+    def open_find_window(self):
+        if self.find_window is None:
+            self.find_window = FindWindow(self) # Pass self (MainWindow instance) as parent
+        self.find_window.show()
+
     def file_loaded(self):
         self.btn_start_logger.setText("Start logging")
         self.actionRestart.setEnabled(True)        
         self.update_columns_list()
         self.set_status("File loaded.", 'success')
         self.df_model.update_data(self.data_provider.alldata)
+        self.set_details()
 
     def update_columns_list(self):
         list_columns = self.data_provider.alldata.columns

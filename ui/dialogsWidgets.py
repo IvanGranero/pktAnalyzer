@@ -106,3 +106,23 @@ class PlotWindow(QDialog):
         self.canvas.draw()
 
 #END OF CLASS PlotWindow
+
+class FindWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        loadUi("ui/findWindow.ui", self)        
+        self.mainwindow = parent
+        #combo_searchfor
+
+        self.btn_find.clicked.connect(self.find)
+
+    def find(self):
+        text = self.find_text.text()
+        print (text)
+        #preview_text
+        #ai_checkBox
+        #hex_checkBox
+        #regex_checkBox
+        #self.mainwindow.tableview.findItems(text, self.mainwindow.tableview.findFlags())
+
+#END OF CLASS PlotWindow

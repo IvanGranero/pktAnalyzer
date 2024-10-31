@@ -130,15 +130,6 @@
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
    </widget>
-   <widget class="QMenu" name="menuAnalysis">
-    <property name="title">
-     <string>Analyze</string>
-    </property>
-    <addaction name="separator"/>
-    <addaction name="actionAscii"/>
-    <addaction name="actionbase64"/>
-    <addaction name="actionCorrelation"/>
-   </widget>
    <widget class="QMenu" name="menuSniff">
     <property name="title">
      <string>Sniff</string>
@@ -168,9 +159,16 @@
     <addaction name="actionUser_s_Guide"/>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuFind">
+    <property name="title">
+     <string>Find</string>
+    </property>
+    <addaction name="actionFind"/>
+    <addaction name="actionbase64"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuSniff"/>
-   <addaction name="menuAnalysis"/>
+   <addaction name="menuFind"/>
    <addaction name="menuPlot"/>
    <addaction name="menuTOols"/>
    <addaction name="menuHelp"/>
@@ -250,6 +248,11 @@
   <action name="actionOpen_REPL">
    <property name="text">
     <string>Open REPL</string>
+   </property>
+  </action>
+  <action name="actionFind">
+   <property name="text">
+    <string>FInd Strings</string>
    </property>
   </action>
  </widget>
