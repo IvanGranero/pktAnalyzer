@@ -92,26 +92,24 @@ class DataFrameProvider:
         return eval(filter_argument, {'df': self.alldata})
 
     # change them to another python file to add all the analysis decoders such as base64
-    def add_strings_column(self, column_index):
-        self.alldata['strings'] = self.alldata.iloc[:, column_index].apply(self.find_strings)
-        self.data['strings'] = self.alldata['strings']
- 
+    def add_strings_column(self, column, min_length=4):
+        # Apply the function and fill any NaN values with empty strings
+        self.alldata['strings'] = self.alldata.loc[:, column].apply(lambda x: self.find_strings(x, min_length)).fillna('')
+
+    def find_strings(self, data, min_length=4):
+        pattern = compile(r'[\x20-\x7E]{%d,}' % min_length)
+        strings = pattern.findall(data)
+        strings = ', '.join(strings)
+        return strings
+
     def to_ascii(self, datahex):
         return ''.join(
             chr(int(datahex[i:i + 2], 16)) if 32 <= int(datahex[i:i + 2], 16) <= 126 else '.'
             for i in range(0, len(datahex), 2)
         )
 
-    def find_strings(self, data, min_length=4):
-        # Compile a regex pattern to match sequences of printable ASCII characters
-        pattern = compile('[\x20-\x7E]{%d,}' % min_length)
-        # Find all matches of the pattern in the data
-        strings = pattern.findall(data)
-        strings = ', '.join(strings)
-        return strings
-
-    def add_base64_column(self, column_source):
-        self.alldata['base64decoded'] = self.alldata['hexbytes'].apply(self.find_and_decode_base64_from_hex)
+    def add_base64_column(self, column):
+        self.alldata['base64decoded'] = self.alldata[column].apply(self.find_and_decode_base64_from_hex)
         self.alldata['base64decoded'] = self.alldata['base64decoded'].astype(str)
 
     def find_and_decode_base64_from_hex(hex_string):

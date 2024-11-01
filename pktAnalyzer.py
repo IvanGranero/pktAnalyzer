@@ -7,7 +7,7 @@ from sniffers.sniffer import PacketLoader
 from sniffers.protocols import hex_to_packet
 from utils.dataframeProvider import DataFrameProvider
 from utils.fileLoader import FileLoader
-import utils.aiPrompt
+from utils import aiPrompt
 
 # Subclass MainWindow to customize your application's main window
 class MainWindow(QMainWindow):
@@ -26,7 +26,6 @@ class MainWindow(QMainWindow):
         self.actionOpen.triggered.connect(self.open_file)
         self.actionSave.triggered.connect(self.save_file)
         self.actionOptions.triggered.connect(self.open_options_window)
-        self.actionAscii.triggered.connect(self.find_strings)
         self.actionGraph.triggered.connect(self.open_plot_window)
         self.actionFind.triggered.connect(self.open_find_window)
         self.actionStart.triggered.connect(self.start_logger)
@@ -102,19 +101,6 @@ class MainWindow(QMainWindow):
             self.data_provider.save_packets(filepath, selected_filter)
             self.set_status("File saved.", 'success')
 
-    def find_strings(self):
-        selected_indexes = self.tableview.selectedIndexes()
-        if selected_indexes:
-            selected_index = selected_indexes[0]
-            column_index = selected_index.column()                 
-            self.set_status('Busy... Please wait!')
-            self.data_provider.add_strings_column(column_index) #add min_length as argument
-            self.df_model.update_data(self.data_provider.alldata)
-            self.update_columns_list()
-            self.set_status('Ready.')
-        else:
-            self.set_status("Select a column.")
-
     def open_plot_window(self):
         if self.plot_window is None:
             self.plot_window = PlotWindow(self) # Pass self (MainWindow instance) as parent
@@ -173,8 +159,8 @@ class MainWindow(QMainWindow):
                 if self.ai_checkBox.isChecked():
                     prompt = filter_argument
                     data = self.data_provider.df_toJSON()
-                    prompt = utils.aiPrompt.prepare_eval_prompt(data, prompt)
-                    filter_argument = utils.aiPrompt.get_completion (prompt)
+                    prompt = aiPrompt.prepare_eval_prompt(data, prompt)
+                    filter_argument = aiPrompt.get_completion (prompt)
 
                 filtered_data = self.query_data(filter_argument)
                 self.df_model.update_data(filtered_data)

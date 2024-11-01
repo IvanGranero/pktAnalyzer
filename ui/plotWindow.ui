@@ -21,6 +21,9 @@
     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,50">
      <item>
       <widget class="QListWidget" name="chart_types">
+       <property name="currentRow">
+        <number>0</number>
+       </property>
        <item>
         <property name="text">
          <string>Line Plot</string>

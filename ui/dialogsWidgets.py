@@ -5,6 +5,8 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from scapy.interfaces import get_working_ifaces
 import networkx as nx
+from re import search
+from utils import aiPrompt
 
 class REPL(QWidget):
     def __init__(self, provider):
@@ -66,15 +68,19 @@ class PlotWindow(QDialog):
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.plot_layout.addWidget(self.toolbar)
         self.btn_plot.clicked.connect(self.plot)
+        columns = self.mainwindow.df_model._data.columns    
+        self.dropdown_yaxis.clear()
+        self.dropdown_yaxis.addItems(columns)
+        self.dropdown_xaxis.clear()
+        self.dropdown_xaxis.addItem("Index")
+        self.dropdown_xaxis.addItems(columns)        
 
     def plot(self):
-        df = self.mainwindow.data_provider.alldata
-        column_index = self.mainwindow.tableview.selectedIndexes()
-        if column_index:
-            column_index = column_index[0].column()
-            self.yaxis.setText(df.columns[column_index]) 
+        df = self.mainwindow.df_model._data
+        yaxis_text = self.dropdown_yaxis.currentText()
         self.xaxis.setText('Index')
-        ydata = df.iloc[:, column_index]
+        ydata = df.loc[:, yaxis_text]
+
         self.canvas.figure.clf()
         ax = self.canvas.figure.add_subplot(111)
         selected_chart = self.chart_types.currentItem().text()
@@ -112,17 +118,40 @@ class FindWindow(QDialog):
         super().__init__(parent)
         loadUi("ui/findWindow.ui", self)        
         self.mainwindow = parent
-        #combo_searchfor
-
         self.btn_find.clicked.connect(self.find)
+        self.btn_add_strings.clicked.connect(self.add_strings_column)
+        #combo_searchfor
+        self.combo_searchfor.clear()
+        columns = self.mainwindow.df_model._data.columns
+        self.combo_searchfor.addItems(columns)
+
+    def add_strings_column(self):
+        #strings_length
+        min_length = self.strings_length.text()
+        column = self.combo_searchfor.currentText()
+        self.mainwindow.data_provider.add_strings_column(column, int(min_length))
+        self.mainwindow.inline_search.setText("df[df['strings'] != '']")
+        self.mainwindow.run_filter()
 
     def find(self):
         text = self.find_text.text()
-        print (text)
+        column = self.combo_searchfor.currentText()
+        if self.ai_checkBox.isChecked():
+            self.regex_checkBox.setChecked(True)
+            prompt = aiPrompt.prepare_regex_prompt(text)
+            text = aiPrompt.get_completion (prompt)
+        self.preview_text.setPlainText(text)
+        use_regex = self.regex_checkBox.isChecked()
+        if use_regex:
+            mask = self.mainwindow.data_provider.alldata[column].apply(lambda x: bool(search(text, str(x))))
+        else:
+            mask = self.mainwindow.data_provider.alldata[column].apply(lambda x: text in str(x))
+
+        self.mainwindow.df_model.update_data(self.mainwindow.data_provider.alldata[mask])
+        
+        #
+        
         #preview_text
-        #ai_checkBox
-        #hex_checkBox
-        #regex_checkBox
-        #self.mainwindow.tableview.findItems(text, self.mainwindow.tableview.findFlags())
+
 
 #END OF CLASS PlotWindow

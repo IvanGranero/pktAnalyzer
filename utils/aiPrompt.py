@@ -17,7 +17,7 @@ def get_completion(prompt, model="gpt-3.5-turbo", temperature=0):
   )
   return completion.choices[0].message.content
 
-#Prompt text for a dataframe expert
+#Dataframe expert AI prompt
 def prepare_eval_prompt(data, prompt):
     prompt_internal = f"""
     You are a Pandas DataFrame expert. You will receive a DataFrame in JSON format named 'df'.
@@ -29,10 +29,23 @@ def prepare_eval_prompt(data, prompt):
     messages = [{"role": "system", "content": promptsys}, {"role": "user", "content": promptuser}]
     return messages
 
-#Prompt text for updating protocol fields
+#Regular expressions AI prompt
+def prepare_regex_prompt(prompt):
+    prompt_internal = f"""
+    You are an AI assistant proficient in creating regular expressions (regex).
+    Your task is to help generate regex patterns that can be used in re.search based on user-provided search prompts.
+    Provide only the regular expression pattern without any additional explanation.
+    """
+    promptsys = f"{prompt_internal}"
+    promptuser = f"Please generate a regular expression for the following search prompt: {prompt}"
+    messages = [{"role": "system", "content": promptsys}, {"role": "user", "content": promptuser}]
+    return messages
+
+#Scapy packets AI prompt
 def prepare_scapy_prompt(prompt):
     prompt_internal = f"""
-    You are an AI assistant helping to expand a list of important fields for various network protocol layers. Provide concise, accurate information.
+    You are an AI assistant helping to expand a list of important fields for various network protocol layers.
+    Provide concise, accurate information.
     """
     promptsys = f"{prompt_internal}"
     promptuser = f"Please list the important fields for the {prompt} layer in Scapy, separated by commas."

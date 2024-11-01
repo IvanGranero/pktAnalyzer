@@ -82,6 +82,9 @@
       </property>
       <item>
        <widget class="QTreeWidget" name="packet_inspector">
+        <attribute name="headerVisible">
+         <bool>false</bool>
+        </attribute>
         <column>
          <property name="text">
           <string notr="true"/>
