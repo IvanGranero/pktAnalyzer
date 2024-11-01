@@ -17,7 +17,21 @@ The pkAnalyzer repository by IvanGranero is a powerful tool for logging and anal
 - Real-time CAN bus data logging.
 - Support for various file formats (log, pcap, csv, parquet).
 - Multi-threaded data processing for efficiency.
+- Strings search
 - Data visualization and analysis.
+
+AI enhanced filtering and analysis
+![image](https://github.com/user-attachments/assets/b618dba8-6ced-47a8-a173-3fc9a7252989)
+
+Strings search
+![image](https://github.com/user-attachments/assets/9ed06d14-3901-4eef-adb5-d2f529d32d7b)
+AI enhanced search
+![image](https://github.com/user-attachments/assets/8b412d4b-969c-4ef5-8e68-b85298b46024)
+![image](https://github.com/user-attachments/assets/374f9195-b49d-4703-b5a3-18dc2af2ccfe)
+
+Data visualization
+![image](https://github.com/user-attachments/assets/e0021675-13c9-4b75-81b6-7429601d8b45)
+
 
 ### Prerequisites
 
