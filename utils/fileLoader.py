@@ -1,27 +1,37 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from pandas import read_csv
-from sniffers.protocols import protocol_handler
-from sniffers.candumpreader import read_packets
+from sniffers.logReader import LogReader
 from scapy.all import PcapReader
-from scapy.layers.can import CandumpReader
 from multiprocessing import cpu_count, Pool
 
 class FileLoader(QThread):
     data_loaded = pyqtSignal(tuple)
     finished = pyqtSignal()
 
-    def __init__(self, provider, file_path, chunk_size=1000, parent=None):
+    def __init__(self, mainwindow, file_path, selected_filter, chunk_size=1000, parent=None):
         super().__init__(parent)
         self.file_path = file_path
+        self.selected_filter = selected_filter
         self.chunk_size = chunk_size
-        self.provider = provider
+        self.provider = mainwindow.data_provider
         self._is_running = True
+        self.protocols = mainwindow.protocols
+        self.parser = LogReader(self.protocols)
 
     def run(self):
         self.provider.clear_data()
         count = sum(1 for i in open(self.file_path, 'rb'))
         self.data_loaded.emit((count, 0))
         file_extension = self.file_path.split('.')[-1].lower()
+        if self.selected_filter.startswith("Parquet"):
+            file_extension = 'parquet'
+        elif self.selected_filter.startswith("LOG"):
+            file_extension = 'log'
+        elif self.selected_filter.startswith("CSV"):
+            file_extension = 'csv'
+        elif self.selected_filter.startswith("PCAP"):
+            file_extension = 'pcap'
+            
         if file_extension == 'gzip':
             file_extension = self.file_path.split('.')[-2].lower()
         
@@ -43,7 +53,7 @@ class FileLoader(QThread):
                     if not packets:
                         break
 
-                    dfs = [protocol_handler(packet) for packet in packets]
+                    dfs = [self.protocols.handle_packet(packet) for packet in packets]
                     self.provider.save_chunk(dfs)
                     chunk_counter += 1
                     self.data_loaded.emit((count, chunk_counter*self.chunk_size))
@@ -62,7 +72,7 @@ class FileLoader(QThread):
                     if not chunks:  # If no chunks have been collected, break the loop
                         break
                 with Pool(num_cpus) as pool:
-                    results_of_list_of_packets = pool.map(read_packets, chunks)
+                    results_of_list_of_packets = pool.map(self.parser.parse_packets, chunks)
                 for list_of_packets in results_of_list_of_packets:
                     self.provider.save_chunk(list_of_packets)
                 chunk_counter += 1

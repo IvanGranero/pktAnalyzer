@@ -1,23 +1,32 @@
 from sys import argv
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog, QTreeWidgetItem
-from ui.dialogsWidgets import REPL, OptionsWindow, PlotWindow, FindWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
+from ui.dialogsWidgets import Dialogs
 from ui.dataframeModel import DataFrameModel
 from PyQt5.uic import loadUi
 from sniffers.sniffer import PacketLoader
-from sniffers.protocols import hex_to_packet
 from utils.dataframeProvider import DataFrameProvider
 from utils.fileLoader import FileLoader
 from utils import aiPrompt
+from sniffers.protocolsHandler import ProtocolHandler
 
 # Subclass MainWindow to customize your application's main window
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         loadUi("ui/mainWindow.ui", self)
-        self.options_window = None  # Initialize OptionsWindow
-        self.plot_window = None # Initialize PlotWindow
-        self.find_window = None # Initialize FindWindow
         self.selected_interface = None
+        self.data_provider = DataFrameProvider()
+        self.df_model = DataFrameModel(self.data_provider.alldata)
+        self.protocols = ProtocolHandler()
+        self.dialogs = Dialogs(self)
+        self.repl = self.dialogs.repl
+        self.options_window = self.dialogs.options_window
+        self.plot_window = self.dialogs.plot_window
+        self.find_window = self.dialogs.find_window
+        self.tableview.setModel(self.df_model)
+        self.tableview.verticalHeader().setVisible(True)
+        ## connect signals
+        self.tableview.selectionModel().currentChanged.connect(self.dialogs.packet_tree.show_packet)
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
         self.btn_run_filter.clicked.connect(self.run_filter)
@@ -26,20 +35,12 @@ class MainWindow(QMainWindow):
         self.actionOpen.triggered.connect(self.open_file)
         self.actionSave.triggered.connect(self.save_file)
         self.actionOptions.triggered.connect(self.open_options_window)
-        self.actionGraph.triggered.connect(self.open_plot_window)
-        self.actionFind.triggered.connect(self.open_find_window)
+        self.actionGraph.triggered.connect(self.plot_window.show)
+        self.actionFind.triggered.connect(self.find_window.show)
         self.actionStart.triggered.connect(self.start_logger)
-        self.actionOpen_REPL.triggered.connect(self.open_repl)
-        self.data_provider = DataFrameProvider()
-        self.repl = REPL(self.data_provider)
-        self.df_model = DataFrameModel(self.data_provider.alldata)
-        self.tableview.setModel(self.df_model)
-        self.tableview.verticalHeader().setVisible(True)
-        self.tableview.selectionModel().currentChanged.connect(self.show_packet)
-                        
+        self.actionOpen_REPL.triggered.connect(self.open_repl)        
+    
     def open_options_window(self):
-        if self.options_window is None:
-            self.options_window = OptionsWindow()        
         if self.options_window.exec_(): # QDialog Accepted
             selected_items = self.options_window.interface_list.selectedItems()
             selected_texts = [item.text(0) for item in selected_items]
@@ -51,8 +52,10 @@ class MainWindow(QMainWindow):
         self.repl.close()
         event.accept()
 
-    def reload_table(self):
-        self.df_model.update_data(self.data_provider.alldata)
+    def update_table(self, data=None):
+        if data is None:
+            data = self.data_provider.alldata
+        self.df_model.update_data(data)
         self.set_details()
 
     def set_details(self, data_loaded=None):
@@ -80,15 +83,17 @@ class MainWindow(QMainWindow):
                 "QLabel { color : black; background-color: transparent; }")   
 
     def open_file(self):
-        file_dialog_filter = "Parquet files (*.parquet);;LOG Files (*.log);;PCAP files (*.pcap *.pcapng);;CSV Files (*.csv);;All Files (*)"
+        file_dialog_filter = "All Files (*);;Parquet files (*.parquet);;LOG Files (*.log);;PCAP files (*.pcap *.pcapng);;CSV Files (*.csv)"
         options = QFileDialog.Options()
-        filepath, _= QFileDialog.getOpenFileName(self, 'Open File', "", file_dialog_filter, options=options)
+        filepath, selected_filter= QFileDialog.getOpenFileName(self, 'Open File', "", file_dialog_filter, options=options)
         if len(filepath) > 0:
             self.set_status("Reading file...")
             self.btn_start_logger.setText("Stop reading")
-            self.loader = FileLoader(self.data_provider, filepath, chunk_size=1000)
+            #adjust chunk_size based on available memory (psutil.virtual_memory(), .available(), .total() )
+            self.loader = FileLoader(self, filepath, selected_filter, chunk_size=1000)
             self.loader.data_loaded.connect(lambda data_loaded: self.set_details(data_loaded))
             self.loader.finished.connect(self.file_loaded)
+            self.setWindowTitle(f"pktAnalyzer - {filepath}")
             self.loader.start()
 
     def save_file(self):
@@ -100,16 +105,6 @@ class MainWindow(QMainWindow):
             self.set_status("Saving file...")
             self.data_provider.save_packets(filepath, selected_filter)
             self.set_status("File saved.", 'success')
-
-    def open_plot_window(self):
-        if self.plot_window is None:
-            self.plot_window = PlotWindow(self) # Pass self (MainWindow instance) as parent
-        self.plot_window.show()
-
-    def open_find_window(self):
-        if self.find_window is None:
-            self.find_window = FindWindow(self) # Pass self (MainWindow instance) as parent
-        self.find_window.show()
 
     def file_loaded(self):
         self.btn_start_logger.setText("Start logging")
@@ -170,7 +165,7 @@ class MainWindow(QMainWindow):
                 print (e)
                 self.set_status('There was a problem with the calculation','warning')
         else:
-            self.reload_table()
+            self.update_table()
 
     def start_logger(self):
         self.btn_start_logger.setText("Start logging")
@@ -187,8 +182,8 @@ class MainWindow(QMainWindow):
             self.actionStart.setEnabled(False)
             self.actionRestart.setEnabled(False)
             self.actionStop.setEnabled(True)            
-            self.loader = PacketLoader(self.data_provider, self.selected_interface, chunk_size=1)
-            self.loader.packets_loaded.connect(self.reload_table)
+            self.loader = PacketLoader(self, self.selected_interface, chunk_size=1)
+            self.loader.packets_loaded.connect(self.update_table) ## CHange to another function to add just one row
             self.loader.start()
             self.set_status("Logging...") 
         else:
@@ -203,7 +198,7 @@ class MainWindow(QMainWindow):
             self.actionStop.setEnabled(False)
             self.actionStart.setEnabled(True)
             self.set_status("Ready.")
-            self.reload_table()
+            self.update_table()
             self.update_columns_list()
 
     def open_repl(self):
@@ -212,30 +207,6 @@ class MainWindow(QMainWindow):
         else:
             self.repl.show()
 
-    ## Need to move to its own class similar to DataFrameWidget
-    def show_packet(self, current, previous):
-        row = current.row()
-        column = current.column()
-        #self.tableview.selectRow(row)
-        data = self.df_model._data.iloc[row]['dataframe']
-        proto = self.df_model._data.iloc[row]['protocol']
-        dataprint =  bytes.fromhex(data).decode('latin1')
-        data = ' '.join(data[i:i+2] for i in range(0, len(data), 2))
-        self.data_inspector.setText(data + "\n" +  dataprint)
-        self.packet_inspector.clear()
-        # extract the packet from the packetlist
-        #layer = self.data_provider.packetlist[row]
-        layer = hex_to_packet(data, proto)
-        while layer:
-            layer_item = QTreeWidgetItem([layer.summary()])
-            self.packet_inspector.addTopLevelItem(layer_item)
-            # add all the packet fields
-            for field_name, field_val in layer.fields.items():
-                field_item = QTreeWidgetItem([f"{field_name}: {field_val}"])
-                layer_item.addChild(field_item)
-
-            layer_item.setExpanded(True)
-            layer = layer.payload if layer.payload else None
 #END OF CLASS MainWindow
 
 def openMainWindow(argv):

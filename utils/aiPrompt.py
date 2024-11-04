@@ -34,7 +34,8 @@ def prepare_regex_prompt(prompt):
     prompt_internal = f"""
     You are an AI assistant proficient in creating regular expressions (regex).
     Your task is to help generate regex patterns that can be used in re.search based on user-provided search prompts.
-    Provide only the regular expression pattern without any additional explanation.
+    Provide only the regular expression pattern without any additional explanation or formatting.
+    Do not include any backticks, quotes, or extra words.
     """
     promptsys = f"{prompt_internal}"
     promptuser = f"Please generate a regular expression for the following search prompt: {prompt}"

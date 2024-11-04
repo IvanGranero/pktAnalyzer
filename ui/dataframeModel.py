@@ -26,3 +26,5 @@ class DataFrameModel(QAbstractTableModel):
         self.beginResetModel()
         self._data = data
         self.endResetModel()
+
+    ## Need to add function to just update the last row

@@ -98,12 +98,13 @@ class DataFrameProvider:
 
     def find_strings(self, data, min_length=4):
         pattern = compile(r'[\x20-\x7E]{%d,}' % min_length)
+        if not isinstance(data, str): data = str(data)
         strings = pattern.findall(data)
         strings = ', '.join(strings)
         return strings
 
     def to_ascii(self, datahex):
-        return ''.join(
+        return ' '.join(
             chr(int(datahex[i:i + 2], 16)) if 32 <= int(datahex[i:i + 2], 16) <= 126 else '.'
             for i in range(0, len(datahex), 2)
         )
@@ -123,7 +124,7 @@ class DataFrameProvider:
         # Decode the bytes to string to apply regex
         raw_data_str = raw_data.decode('latin1')  # Using 'latin1' to avoid decoding errors
         # Find all base64 strings in the raw data string
-        base64_strings = base64_pattern.findall(raw_data_str)
+        base64_strings = base64_pattern.findall(raw_data_str)         
         decoded_strings = []
 
         for base64_string in base64_strings:
