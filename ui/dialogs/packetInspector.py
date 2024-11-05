@@ -1,12 +1,14 @@
 from PyQt5.QtWidgets import QTreeWidgetItem
+from sniffers.protocolsHandler import ProtocolHandler
 
 class PacketInspector:
     def __init__(self, parent=None):
         super().__init__()
-        self.mainwindow = parent        
+        self.mainwindow = parent
+        self.protocols = ProtocolHandler()
      
     def show_packet(self, current, previous):
-        hex_to_packet = self.mainwindow.protocols.hex_to_packet
+        hex_to_packet = self.protocols.hex_to_packet
         row = current.row()
         column = current.column()
         #self.mainwindow.tableview.selectRow(row)

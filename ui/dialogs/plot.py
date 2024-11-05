@@ -1,16 +1,16 @@
+from ui.plotWindow import Ui_Form
 from PyQt5.QtWidgets import QDialog
-from PyQt5.uic import loadUi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import networkx as nx
 
 
-class PlotWindow(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        loadUi("ui/plotWindow.ui", self)        
-        self.mainwindow = parent
+class PlotWindow(QDialog, Ui_Form):
+    def __init__(self, df_model):
+        super().__init__()
+        self.setupUi(self)
+        self.df_model = df_model
         self.canvas = FigureCanvas(Figure(figsize=(5, 4)))
         self.plot_layout.addWidget(self.canvas)
         self.toolbar = NavigationToolbar(self.canvas, self)
@@ -19,7 +19,7 @@ class PlotWindow(QDialog):
         self.update_dropdowns()
 
     def update_dropdowns(self):
-        columns = self.mainwindow.df_model._data.columns
+        columns = self.df_model._data.columns
         self.dropdown_yaxis.clear()
         self.dropdown_yaxis.addItems(columns)
         self.dropdown_xaxis.clear()
@@ -27,7 +27,7 @@ class PlotWindow(QDialog):
         self.dropdown_xaxis.addItems(columns)      
 
     def plot(self):
-        df = self.mainwindow.df_model._data
+        df = self.df_model._data
         yaxis_text = self.dropdown_yaxis.currentText()
         ydata = df.loc[:, yaxis_text]
 

@@ -1,12 +1,12 @@
 from PyQt5.QtWidgets import QDialog
-from PyQt5.uic import loadUi
 from re import compile
 from utils import aiPrompt
+from ui.findWindow import Ui_Form
 
-class FindWindow(QDialog):
+class FindWindow(QDialog, Ui_Form):
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi("ui/findWindow.ui", self)        
+        self.setupUi(self)
         self.mainwindow = parent
         self.btn_find.clicked.connect(self.find)
         self.btn_add_strings.clicked.connect(self.add_strings_column)

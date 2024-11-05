@@ -6,5 +6,12 @@
 # ignore .env
 .env
 
+# ignore ui local files
+*.ui
+
 # ignore ALL files in ANY directory named userfiles
 userfiles/
+
+build/
+dist/
+*.spec

@@ -1,11 +1,11 @@
-from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem
 from scapy.interfaces import get_working_ifaces
+from ui.optionsWindow import Ui_Dialog
 
-class OptionsWindow(QDialog):
+class OptionsWindow(QDialog, Ui_Dialog):
     def __init__(self):
         super().__init__()
-        loadUi("ui/optionsWindow.ui", self)
+        self.setupUi(self)
         self.get_network_interfaces()
 
     def get_network_interfaces(self):

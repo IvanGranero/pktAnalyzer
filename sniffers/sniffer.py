@@ -1,17 +1,18 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from scapy.all import sniff
+from sniffers.protocolsHandler import ProtocolHandler
 
 class PacketLoader(QThread):
     packets_loaded = pyqtSignal()
 
-    def __init__(self, mainwindow, iface, chunk_size=1, parent=None):
+    def __init__(self, provider, iface, chunk_size=1, parent=None):
         super().__init__(parent)
         self.chunk_size = chunk_size
         self.running = True
-        self.provider = mainwindow.data_provider
+        self.provider = provider
         self.iface = iface
         self.timeout = 1    # Timeout in seconds for sniffing
-        self.protocols = mainwindow.protocols
+        self.protocols = ProtocolHandler()
 
     def run(self):
         while self.running:

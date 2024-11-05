@@ -40,7 +40,7 @@ class DataFrameProvider:
         self.file_counter = 0
 
     def save_chunk(self, chunk):
-        if not isinstance(chunk, pd.DataFrame):        
+        if not isinstance(chunk, pd.DataFrame):   
             chunk = pd.DataFrame(chunk, columns=self.alldata.columns).reset_index(drop=True)
         self.file_counter += 1        
         file_path = os.path.join(self.temp_folder, f'processed_data_{self.file_counter}.parquet')
