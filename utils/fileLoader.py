@@ -61,24 +61,27 @@ class FileLoader(QThread):
 
         elif file_extension == 'log':
             chunk_counter = 0
+            chunks_available = True
             chunk_iter = read_csv(self.file_path, chunksize=self.chunk_size, header=None)
-            # Initialize ThreadPoolExecutor
-            num_workers = int(cpu_count()/2)
-            with ThreadPoolExecutor(max_workers=num_workers) as executor:
-                futures = []
-                while self._is_running:
-                    try:
-                        chunk = next(chunk_iter)[0].tolist()
-                    except StopIteration:
-                        break                    
-                    # Submit the processing task to the executor
-                    future = executor.submit(self.process_chunk, chunk)
-                    futures.append(future)
-                # Collect results as they complete
-                for future in as_completed(futures):
-                    future.result()  # Ensure the task is completed
-                    chunk_counter += 1
-                    self.data_loaded.emit((count, chunk_counter * self.chunk_size))
+            num_workers = int(cpu_count() / 2)
+            batch_size = num_workers
+            while self._is_running and chunks_available:
+                with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                    futures = []
+                    for _ in range(batch_size):
+                        try:
+                            chunk = next(chunk_iter)[0].tolist()
+                        except StopIteration:
+                            chunks_available = False
+                            break
+                        future = executor.submit(self.process_chunk, chunk)
+                        futures.append(future)
+                    for future in as_completed(futures):
+                        future.result()  # Ensure the task is completed
+                        chunk_counter += 1
+                        self.data_loaded.emit((count, chunk_counter * self.chunk_size))
+                    if not futures:
+                        break  # go to next batch
             self.provider.read_all_parquets()
 
         elif file_extension == 'csv':
@@ -106,4 +109,3 @@ class FileLoader(QThread):
 
     def stop(self):
         self._is_running = False
-
