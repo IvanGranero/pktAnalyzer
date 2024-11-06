@@ -18,7 +18,7 @@
     <layout class="QVBoxLayout" name="plot_layout"/>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,50">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,0,0,50,0">
      <item>
       <widget class="QListWidget" name="chart_types">
        <property name="currentRow">
@@ -99,7 +99,37 @@
      <item>
       <widget class="QPushButton" name="btn_plot">
        <property name="text">
-        <string>Plot</string>
+        <string>Generate Plot</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelgroupby">
+       <property name="text">
+        <string>Group by:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="dropdown_groupby"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_multipleplots">
+       <property name="text">
+        <string>Show Grouped Plots</string>
        </property>
       </widget>
      </item>
@@ -115,6 +145,13 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelstatus">
+       <property name="text">
+        <string>Ready.</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
