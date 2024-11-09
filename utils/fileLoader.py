@@ -16,10 +16,10 @@ class FileLoader(QThread):
         self.selected_filter = selected_filter
         self.chunk_size = chunk_size
         self.provider = provider
-        self._is_running = True
         self.parser = Parser()
 
     def run(self):
+        self._is_running = True        
         self.provider.clear_data()
         count = sum(1 for i in open(self.file_path, 'rb'))
         self.data_loaded.emit((count, 0))
@@ -35,29 +35,35 @@ class FileLoader(QThread):
             
         if file_extension == 'gzip':
             file_extension = self.file_path.split('.')[-2].lower()
-        
-        if file_extension == 'pcap' or file_extension=='pcapng':     
+            
+        if file_extension == 'pcap' or file_extension == 'pcapng':
+            chunk_counter = 0
+            notEOF = True
+            num_workers = int(cpu_count() / 2) + 1
+            batch_size = num_workers
             with PcapReader(self.file_path) as pcap_reader:
-                notEOF = True
-                chunk_counter = 0
                 while notEOF and self._is_running:
-                    packets = []
-                    try:
-                        for _ in range(self.chunk_size):
-                            packet = pcap_reader.read_packet()
-                            if packet:
+                    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                        futures = []
+                        for _ in range(batch_size):
+                            packets = []
+                            for _ in range(self.chunk_size):
+                                try:
+                                    packet = pcap_reader.read_packet()
+                                except EOFError:
+                                    notEOF = False
+                                    break                                
                                 packets.append(packet)
-                            else:
+                            if not packets:
                                 break
-                    except EOFError:
-                        notEOF = False
-                    if not packets:
-                        break
-                    dfs = [self.parser.protocols.handle_packet(packet) for packet in packets]
-                    self.provider.save_chunk(dfs)
-                    chunk_counter += 1
-                    self.data_loaded.emit((count, chunk_counter*self.chunk_size))
-            self.provider.read_all_parquets()
+                            futures.append(executor.submit(self.process_pcap_chunk, packets))
+                        for future in as_completed(futures):
+                            future.result()  # Ensure the task is completed
+                            print ("future result")
+                            chunk_counter += 1
+                            self.data_loaded.emit((count, chunk_counter * self.chunk_size))                        
+                            
+                self.provider.read_all_parquets()
 
         elif file_extension == 'log':
             chunk_counter = 0
@@ -74,14 +80,11 @@ class FileLoader(QThread):
                         except StopIteration:
                             chunks_available = False
                             break
-                        future = executor.submit(self.process_chunk, chunk)
-                        futures.append(future)
+                        futures.append(executor.submit(self.process_log_chunk, chunk))
                     for future in as_completed(futures):
                         future.result()  # Ensure the task is completed
                         chunk_counter += 1
                         self.data_loaded.emit((count, chunk_counter * self.chunk_size))
-                    if not futures:
-                        break  # go to next batch
             self.provider.read_all_parquets()
 
         elif file_extension == 'csv':
@@ -102,10 +105,17 @@ class FileLoader(QThread):
         self.provider.delete_temp_folder()
         self.finished.emit()
 
-    def process_chunk(self, chunk):
+    def process_log_chunk(self, chunk):
         list_of_packets = self.parser.parse_packets(chunk)
         self.provider.save_chunk(list_of_packets)
-        #return len(list_of_packets)
+
+    def process_pcap_chunk(self, packets):
+        #print (packets)
+        list_of_packets = [self.parser.protocols.handle_packet(packet) for packet in packets]
+        print (list_of_packets)
+        self.provider.save_chunk(list_of_packets)
 
     def stop(self):
         self._is_running = False
+
+

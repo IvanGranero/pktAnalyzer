@@ -103,12 +103,6 @@ class DataFrameProvider:
         strings = ', '.join(strings)
         return strings
 
-    def to_ascii(self, datahex):
-        return ' '.join(
-            chr(int(datahex[i:i + 2], 16)) if 32 <= int(datahex[i:i + 2], 16) <= 126 else '.'
-            for i in range(0, len(datahex), 2)
-        )
-
     def add_base64_column(self, column):
         self.alldata['base64decoded'] = self.alldata[column].apply(self.find_and_decode_base64_from_hex)
         self.alldata['base64decoded'] = self.alldata['base64decoded'].astype(str)

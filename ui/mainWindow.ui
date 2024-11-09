@@ -153,8 +153,9 @@ p, li { white-space: pre-wrap; }
    </widget>
    <widget class="QMenu" name="menuPlot">
     <property name="title">
-     <string>Plot</string>
+     <string>Analyze</string>
     </property>
+    <addaction name="actionStatistics"/>
     <addaction name="actionGraph"/>
    </widget>
    <widget class="QMenu" name="menuTOols">
@@ -175,6 +176,7 @@ p, li { white-space: pre-wrap; }
      <string>Find</string>
     </property>
     <addaction name="actionFind"/>
+    <addaction name="actionHex_Search_and_Decode"/>
     <addaction name="actionbase64"/>
    </widget>
    <addaction name="menuFile"/>
@@ -202,7 +204,7 @@ p, li { white-space: pre-wrap; }
   </action>
   <action name="actionbase64">
    <property name="text">
-    <string>Base64 Find and Decode</string>
+    <string>Base64 Search and Decode</string>
    </property>
   </action>
   <action name="actionImport_DBC">
@@ -253,7 +255,7 @@ p, li { white-space: pre-wrap; }
   </action>
   <action name="actionGraph">
    <property name="text">
-    <string>Data Visualization</string>
+    <string>Visual Data Analysis</string>
    </property>
   </action>
   <action name="actionOpen_REPL">
@@ -263,7 +265,17 @@ p, li { white-space: pre-wrap; }
   </action>
   <action name="actionFind">
    <property name="text">
-    <string>FInd Strings</string>
+    <string>Text Search</string>
+   </property>
+  </action>
+  <action name="actionStatistics">
+   <property name="text">
+    <string>Statistical Analysis</string>
+   </property>
+  </action>
+  <action name="actionHex_Search_and_Decode">
+   <property name="text">
+    <string>Hex Search and Decode</string>
    </property>
   </action>
  </widget>
