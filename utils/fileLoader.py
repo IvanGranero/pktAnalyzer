@@ -59,7 +59,6 @@ class FileLoader(QThread):
                             futures.append(executor.submit(self.process_pcap_chunk, packets))
                         for future in as_completed(futures):
                             future.result()  # Ensure the task is completed
-                            print ("future result")
                             chunk_counter += 1
                             self.data_loaded.emit((count, chunk_counter * self.chunk_size))                        
                             
@@ -110,9 +109,7 @@ class FileLoader(QThread):
         self.provider.save_chunk(list_of_packets)
 
     def process_pcap_chunk(self, packets):
-        #print (packets)
         list_of_packets = [self.parser.protocols.handle_packet(packet) for packet in packets]
-        print (list_of_packets)
         self.provider.save_chunk(list_of_packets)
 
     def stop(self):

@@ -3,12 +3,11 @@ from scapy.config import conf
 from scapy.layers.l2 import Ether, ARP
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse, Raw
 from scapy.layers.can import CANFD, CAN
-# from scapy.contrib.isotp import ISOTP, ISOTPMessageBuilder
-# from scapy.contrib.automotive.doip import *
-# from scapy.contrib.automotive.uds import *
-# from scapy.contrib.automotive.someip import *
-# from scapy.contrib.isotp import *
-# from scapy.layers.http import *
+from scapy.contrib.automotive.doip import *
+from scapy.contrib.automotive.uds import *
+from scapy.contrib.automotive.someip import *
+from scapy.contrib.isotp import *
+from scapy.layers.http import *
 
 class ProtocolHandler:
     def __init__(self):

@@ -10,7 +10,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-class PlotWindow(QDialog, Ui_Form):
+class PlotWindow(QWidget, Ui_Form):
     def __init__(self, df_model):
         super().__init__()
         self.setupUi(self)
