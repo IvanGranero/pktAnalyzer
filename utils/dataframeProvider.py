@@ -91,44 +91,4 @@ class DataFrameProvider:
         ## Need to sanitize the input to avoid code injection
         return eval(filter_argument, {'df': self.alldata})
 
-    # change them to another python file to add all the analysis decoders such as base64
-    def add_strings_column(self, column, min_length=4):
-        # Apply the function and fill any NaN values with empty strings
-        self.alldata['strings'] = self.alldata.loc[:, column].apply(lambda x: self.find_strings(x, min_length)).fillna('')
 
-    def find_strings(self, data, min_length=4):
-        pattern = compile(r'[\x20-\x7E]{%d,}' % min_length)
-        if not isinstance(data, str): data = str(data)
-        strings = pattern.findall(data)
-        strings = ', '.join(strings)
-        return strings
-
-    def add_base64_column(self, column):
-        self.alldata['base64decoded'] = self.alldata[column].apply(self.find_and_decode_base64_from_hex)
-        self.alldata['base64decoded'] = self.alldata['base64decoded'].astype(str)
-
-    def find_and_decode_base64_from_hex(hex_string):
-        # Convert hex string to bytes
-        raw_data = bytes.fromhex(hex_string)
-        
-        # Regular expression to match base64 encoded strings
-        base64_pattern = compile(r'(?<![A-Za-z0-9+/=])([A-Za-z0-9+/]{4})*'
-                                    r'([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?(?![A-Za-z0-9+/=])')
-        
-        # Decode the bytes to string to apply regex
-        raw_data_str = raw_data.decode('latin1')  # Using 'latin1' to avoid decoding errors
-        # Find all base64 strings in the raw data string
-        base64_strings = base64_pattern.findall(raw_data_str)         
-        decoded_strings = []
-
-        for base64_string in base64_strings:
-            # Base64 string tuple, get the full match
-            full_base64 = ''.join(base64_string)
-            try:
-                # Decode the base64 string
-                decoded_data = base64.b64decode(full_base64).decode('utf-8', errors='replace')
-                decoded_strings.append(decoded_data)
-            except Exception as e:
-                print(f"Could not decode: {full_base64}, Error: {e}")
-
-        return decoded_strings

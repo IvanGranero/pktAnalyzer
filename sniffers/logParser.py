@@ -1,26 +1,13 @@
 from re import compile
-#from json import load as loadjson
+from json import load as loadjson
 from scapy.layers.can import CANFD, CAN
 from sniffers.protocolsHandler import ProtocolHandler
 
 class Parser:
     def __init__(self):
-
-        # file_path = "sniffers/parsing_patterns.json"    # user settings?
-        # with open(file_path, 'r') as file:
-        #     patterns_json = loadjson(file)
-
-        patterns_json = {
-            "patterns": [
-                {"name": "PATTERN_1", "regex": "^\\((?P<timestamp>\\d+\\.\\d+)\\)\\s+(?P<interface>\\w+)\\s+(?P<identifier>[0-9A-F]{3,8})#(?P<data>[0-9A-F]*)\\s*$"},
-                {"name": "PATTERN_2", "regex": "^\\((?P<timestamp>\\d+\\.\\d+)\\)\\s+(?P<interface>\\w+)\\s+(?P<identifier>[0-9A-F]{3,8})##(?P<flags>\\d)(?P<data>[0-9A-F]*)\\s*$"},
-                {"name": "PATTERN_3", "regex": "^(?P<interface>\\w+)\\s+(?P<identifier>[0-9A-F]{3,8})#(?P<data>[0-9A-F]*)\\s*$"},
-                {"name": "PATTERN_4", "regex": "^(?P<interface>\\w+)\\s+(?P<identifier>[0-9A-F]{3,8})##(?P<flags>\\d)(?P<data>[0-9A-F]*)\\s*$"},
-                {"name": "PATTERN_5", "regex": "^\\s*(?P<interface>\\w+)\\s+(?P<identifier>[0-9A-F]{3,8})\\s+\\[(?P<length>\\d+)\\]\\s+(?P<data>[0-9A-F\\s]+)\\s*$"},
-                {"name": "PATTERN_6", "regex": "^\\((?P<timestamp>\\d+\\.\\d+)\\)\\s*(?P<interface>\\w+)\\s+(?P<identifier>[0-9A-F]{3,8})\\s+\\[(?P<length>\\d+)\\]\\s+(?P<data>[0-9A-F\\s]+)\\s*$"}
-            ]
-        }
-
+        file_path = "sniffers/parsing_patterns.json"    # user settings?
+        with open(file_path, 'r') as file:
+            patterns_json = loadjson(file)
         self.patterns = [compile(p['regex']) for p in patterns_json['patterns']]
         self.protocols = ProtocolHandler()
 

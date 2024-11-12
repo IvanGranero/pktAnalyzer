@@ -1,93 +1,26 @@
-#from json import load as loadjson
+from json import load as loadjson
 from scapy.config import conf
 from scapy.layers.l2 import Ether, ARP
-from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse, Raw
 from scapy.layers.can import CANFD, CAN
 from scapy.contrib.automotive.doip import *
 from scapy.contrib.automotive.uds import *
 from scapy.contrib.automotive.someip import *
 from scapy.contrib.isotp import *
+from scapy.contrib.automotive.xcp import *
 from scapy.layers.http import *
+#from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse, Raw
+from pandas import to_datetime
 
 class ProtocolHandler:
     def __init__(self):
-
-        # file_path = "sniffers/proto_fields.json" # user settings?
-        # with open(file_path, 'r') as file:
-        #     self.important_fields = loadjson(file)
-        self.important_fields = {
-            "CAN": {
-                "fields": [
-                    {"name": "identifier", "convert_from_to": "int_to_hexstring", "column_number": 6},
-                    {"name": "length", "column_number": 4},
-                    {"name": "data", "convert_from_to": "bytes_to_hexstring", "column_number": 7}
-                ]
-            },
-            "CANFD": {
-                "fields": [
-                    {"name": "identifier", "convert_from_to": "int_to_hexstring", "column_number": 6},
-                    {"name": "length", "column_number": 4},
-                    {"name": "data", "convert_from_to": "bytes_to_hexstring", "column_number": 7}
-                ]
-            },
-            "J1939": {
-                "fields": [
-                    {"name": "pgn", "column_number": 5},
-                    {"name": "priority", "column_number": 5},
-                    {"name": "source", "column_number": 1},
-                    {"name": "destination", "column_number": 2}
-                ]
-            },
-            "ISO-TP": {
-                "fields": [
-                    {"name": "src", "column_number": 1},
-                    {"name": "dst", "column_number": 2}
-                ]
-            },
-            "DoIP": {
-                "fields": [
-                    {"name": "data", "column_number": 7}
-                ]
-            },
-            "UDS": {
-                "fields": [
-                    {"name": "src", "column_number": 1},
-                    {"name": "dst", "column_number": 2}
-                ]
-            },
-            "Ether": {
-                "fields": [
-                    {"name": "src", "column_number": 1},
-                    {"name": "dst", "column_number": 2},
-                    {"name": "proto", "column_number": 3}
-                ]
-            },
-            "IP": {
-                "fields": [
-                    {"name": "src", "column_number": 1},
-                    {"name": "dst", "column_number": 2},
-                    {"name": "proto", "column_number": 3}
-                ]
-            },
-            "TCP": {
-                "fields": [
-                    {"name": "dport", "convert_from_to": "int_to_string", "column_number": 6}
-                ]
-            },
-            "UDP": {
-                "fields": [
-                    {"name": "dport", "convert_from_to": "int_to_string", "column_number": 6}
-                ]
-            }
-        }
-
-        conf.contribs['CAN']['swap-bytes'] = True   # True for Wireshark dissection False for PC_CAN Socket dissection        
-
+        file_path = "sniffers/proto_fields.json" # user settings?
+        with open(file_path, 'r') as file:
+            self.important_fields = loadjson(file)
+        conf.contribs['CAN']['swap-bytes'] = True   # True for Wireshark dissection False for PC_CAN Socket dissection
 
     def handle_packet(self, packet):
         pktbytes = bytes(packet)
-        pktlength = len(packet)
-        
+        pktlength = len(packet)        
         # Handle CAN packets
         if pktlength == 16:
             packet = CAN(pktbytes)

@@ -5,7 +5,6 @@ from scapy.all import PcapReader
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import cpu_count
 
-
 class FileLoader(QThread):
     data_loaded = pyqtSignal(tuple)
     finished = pyqtSignal()
@@ -52,7 +51,7 @@ class FileLoader(QThread):
                                     packet = pcap_reader.read_packet()
                                 except EOFError:
                                     notEOF = False
-                                    break                                
+                                    break
                                 packets.append(packet)
                             if not packets:
                                 break
@@ -60,8 +59,7 @@ class FileLoader(QThread):
                         for future in as_completed(futures):
                             future.result()  # Ensure the task is completed
                             chunk_counter += 1
-                            self.data_loaded.emit((count, chunk_counter * self.chunk_size))                        
-                            
+                            self.data_loaded.emit((count, chunk_counter * self.chunk_size))
                 self.provider.read_all_parquets()
 
         elif file_extension == 'log':

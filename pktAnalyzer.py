@@ -1,12 +1,10 @@
 from sys import argv
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
-from ui.dialogsWidgets import Dialogs
-from ui.dataframeModel import DataFrameModel
 from sniffers.sniffer import PacketLoader
 from utils.dataframeProvider import DataFrameProvider
 from utils.fileLoader import FileLoader
 from utils import aiPrompt
-from ui.mainWindow import Ui_MainWindow
+from ui import *
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -20,18 +18,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connect_signals()
 
     def _initialize_dialogs(self):
-        self.dialogs = Dialogs(self)
-        self.repl = self.dialogs.repl
-        self.options_window = self.dialogs.options_window
-        self.plot_window = self.dialogs.plot_window
-        self.find_window = self.dialogs.find_window
+        self.repl = REPL(self.data_provider)
+        self.options_window = OptionsWindow()
+        self.plot_window = PlotWindow(self.df_model)
+        self.find_window = FindWindow(self)
+        self.packet_tree = PacketInspector(self)
 
     def _setup_ui(self):
         self.tableview.setModel(self.df_model)
         self.tableview.verticalHeader().setVisible(True)
 
     def _connect_signals(self):
-        self.tableview.selectionModel().currentChanged.connect(self.dialogs.packet_tree.show_packet)
+        self.tableview.selectionModel().currentChanged.connect(self.packet_tree.show_packet)
         self.btn_start_logger.clicked.connect(self.start_stop_logger)
         self.inline_search.returnPressed.connect(self.btn_run_filter.click)
         self.btn_run_filter.clicked.connect(self.run_filter)
