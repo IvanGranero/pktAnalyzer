@@ -1,7 +1,7 @@
 from re import compile
 from json import load as loadjson
 from scapy.layers.can import CANFD, CAN
-from sniffers.protocolsHandler import ProtocolHandler
+from sniffers.protocol_handler import ProtocolHandler
 
 class Parser:
     def __init__(self):

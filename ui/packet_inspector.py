@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QTreeWidgetItem
-from sniffers.protocolsHandler import ProtocolHandler
+from sniffers.protocol_handler import ProtocolHandler
 
 class PacketInspector:
     def __init__(self, parent=None):

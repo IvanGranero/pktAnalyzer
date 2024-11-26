@@ -4,6 +4,7 @@ from re import compile
 from uuid import uuid4
 from shutil import rmtree
 from pathlib import Path
+from scapy.all import wrpcap
 
 class DataFrameProvider:
     def __init__(self):
@@ -57,27 +58,6 @@ class DataFrameProvider:
         self.alldata = pd.concat(
             (pd.read_parquet(parquet_file) for parquet_file in data_dir.glob('*.parquet'))            
         ).reset_index(drop=True)
-
-    def save_packets(self, filepath, selected_filter):
-        if selected_filter.startswith("Parquet"):
-            if not filepath.endswith(".parquet"):
-                filepath += ".parquet"
-            self.alldata.to_parquet(filepath, index=False)
-
-        elif selected_filter.startswith("LOG"):
-            if not filepath.endswith(".log"):
-                filepath += ".log"
-            # Need to add a function to save canlog packets
-
-        elif selected_filter.startswith("PCAP"):
-            if not (filepath.endswith(".pcap") or filepath.endswith(".pcapng")):
-                filepath += ".pcap"  # Default to .pcap if neither is specified
-            # Need to add wrpcap function to save the packets
-
-        elif selected_filter.startswith("CSV"):
-            if not filepath.endswith(".csv"):
-                filepath += ".csv"
-            self.alldata.to_csv(filepath, sep='\t')
 
     def df_toJSON(self):
         try:

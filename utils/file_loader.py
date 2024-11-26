@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from pandas import read_csv
-from sniffers.logParser import Parser
+from sniffers.log_parser import Parser
 from scapy.all import PcapReader
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import cpu_count

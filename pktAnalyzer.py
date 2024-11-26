@@ -1,9 +1,9 @@
 from sys import argv
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidgetItem, QFileDialog
 from sniffers.sniffer import PacketLoader
-from utils.dataframeProvider import DataFrameProvider
-from utils.fileLoader import FileLoader
-from utils import aiPrompt
+from utils.dataframe_provider import DataFrameProvider
+from utils.file_loader import FileLoader
+from utils import ai_prompt
 from ui import *
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -134,8 +134,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.set_status('Busy... Please wait!')
                 if self.ai_checkBox.isChecked():
                     data = self.data_provider.df_toJSON()
-                    prompt = aiPrompt.prepare_eval_prompt(data, filter_argument)
-                    filter_argument = aiPrompt.get_completion(prompt)
+                    prompt = ai_prompt.prepare_eval_prompt(data, filter_argument)
+                    filter_argument = ai_prompt.get_completion(prompt)
                 filtered_data = self.query_data(filter_argument)
                 self.df_model.update_data(filtered_data)
                 self.set_details()

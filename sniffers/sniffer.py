@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from scapy.all import sniff
-from sniffers.protocolsHandler import ProtocolHandler
+from sniffers.protocol_handler import ProtocolHandler
 
 class PacketLoader(QThread):
     packets_loaded = pyqtSignal()

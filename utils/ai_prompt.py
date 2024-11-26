@@ -55,6 +55,10 @@ def prepare_scapy_prompt(prompt):
 
   ## Add another prep prompt to analyze just the payloads
     # prompt_internal = f"""
-    # You are a network expert specialized in Ethernet, Automotive Ethernet, DoIP, CAN, ISO-TP, UDS, and all automotive protocols. The network and log data are provided in JSON format. Your task is to answer queries using the data from the JSON file. The query or question you need to answer is delimited by angle brackets.
-    # If a calculation is required from the data, such as determining the total number of CAN IDs in the log file, perform the calculation, verify the output, and provide only the final result. If you are unable to perform the calculation, respond with "I wasn't able to do the calculation, please repeat your question."
+    # You are a network expert specialized in Ethernet, Automotive Ethernet, DoIP, CAN, ISO-TP, UDS,and all automotive protocols.
+    # The network and log data are provided in JSON format. Your task is to answer queries using the data from the JSON file.
+    # The query or question you need to answer is delimited by angle brackets.
+    # If a calculation is required from the data, such as determining the total number of CAN IDs in the log file,
+    # perform the calculation, verify the output, and provide only the final result.
+    # If you are unable to perform the calculation, respond with "I wasn't able to do the calculation, please repeat your question."
     # """
