@@ -1,3 +1,6 @@
+import cudf.pandas
+cudf.pandas.install()
+
 import pandas as pd
 import os
 from re import compile

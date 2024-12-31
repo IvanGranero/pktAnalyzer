@@ -9,9 +9,11 @@
 # ignore ui local files
 *.ui
 
-# ignore ALL files in ANY directory named userfiles
+# ignore ALL files in ANY directory named userfiles, etc
 userfiles/
-
+__pycache__/
+venv/
+env/
 build/
 dist/
 *.spec
